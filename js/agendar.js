@@ -5,7 +5,8 @@ let barbers = [];
 let selectedSlot = '';
 
 const params = new URLSearchParams(location.search);
-const slug = params.get('slug');
+const pathParts = location.pathname.split('/').filter(Boolean);
+const slug = params.get('slug') || (pathParts[0] === 'agenda' ? decodeURIComponent(pathParts[1] || '') : '');
 
 function timeToMinutes(t){
   const [h,m] = String(t).slice(0,5).split(':').map(Number);
@@ -24,6 +25,16 @@ function weekdayFromDate(dateValue){
   return new Date(dateValue + 'T00:00:00').getDay();
 }
 
+function slugifyPublicValue(value){
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function isBeforeMinimumAdvance(dateValue, timeValue){
   const minutes = Number(shop?.booking_min_advance_minutes || 0);
   if (!minutes) return false;
@@ -39,13 +50,33 @@ async function initBooking(){
     return;
   }
 
-  const { data: shopData, error: shopError } = await db
+  let shopData = null;
+  let shopError = null;
+
+  const directLookup = await db
     .from('barbershops')
     .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
     .or(`slug.eq.${slug},id.eq.${slug}`)
     .eq('active', true)
     .eq('subscription_status', 'active')
     .maybeSingle();
+
+  shopData = directLookup.data;
+  shopError = directLookup.error;
+
+  if (!shopData && !shopError) {
+    const fallbackLookup = await db
+      .from('barbershops')
+      .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
+      .eq('active', true)
+      .eq('subscription_status', 'active');
+
+    if (!fallbackLookup.error) {
+      shopData = (fallbackLookup.data || []).find(item =>
+        slugifyPublicValue(item.slug || item.name || item.id) === slugifyPublicValue(slug)
+      );
+    }
+  }
 
   if (shopError || !shopData) {
     document.getElementById('bookingCard').innerHTML = '<div class="success-panel"><h2>Agenda indisponível</h2><p>Confira o link recebido ou fale com a barbearia.</p></div>';

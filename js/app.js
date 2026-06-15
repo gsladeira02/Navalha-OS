@@ -50,3 +50,68 @@ window.requireAuth = async function(pageTitle, subtitle){
   if (logoutBtn) logoutBtn.onclick = async () => { await db.auth.signOut(); location.href = 'login.html'; };
   return { session, shop };
 };
+
+
+function slugifyBarbershopName(value){
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function getPublicBookingSlug(){
+  return slugifyBarbershopName(activeShop?.slug || activeShop?.name || activeShop?.id);
+}
+
+function getPublicBookingLink(){
+  return `https://navalha-os.vercel.app/agenda/${encodeURIComponent(getPublicBookingSlug())}`;
+}
+
+function setupBookingShare(){
+  const bookingLink = getPublicBookingLink();
+  const shareText = `Agende seu horário na ${activeShop.name}: ${bookingLink}`;
+
+  const bookingInput = document.getElementById('bookingLink');
+  if (bookingInput) bookingInput.value = bookingLink;
+
+  const nameEl = document.getElementById('shareBarbershopName');
+  if (nameEl) nameEl.textContent = activeShop.name;
+
+  const copyBtn = document.getElementById('copyBookingLink');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        showToast('Mensagem com o nome da barbearia copiada.', 'success');
+      } catch {
+        if (bookingInput) {
+          bookingInput.focus();
+          bookingInput.select();
+          document.execCommand('copy');
+          showToast('Link copiado.', 'success');
+        }
+      }
+    };
+  }
+
+  const shareBtn = document.getElementById('shareBookingLink');
+  if (shareBtn) {
+    shareBtn.onclick = async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: `Agenda • ${activeShop.name}`,
+            text: `Agende seu horário na ${activeShop.name}`,
+            url: bookingLink
+          });
+        } else {
+          await navigator.clipboard.writeText(shareText);
+          showToast('Mensagem copiada para compartilhar.', 'success');
+        }
+      } catch (err) {}
+    };
+  }
+}

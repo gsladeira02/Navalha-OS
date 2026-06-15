@@ -80,3 +80,16 @@ Opções disponíveis:
 - 1 dia.
 
 O link público remove automaticamente os horários que estiverem antes do limite configurado.
+
+
+## Link público de agendamento corrigido
+
+O link exibido no Dashboard e na Agenda segue este formato:
+
+```txt
+https://navalha-os.vercel.app/agenda/nomedabarbearia
+```
+
+A Vercel usa `vercel.json` para redirecionar internamente esse caminho para `agendar.html`.
+
+Se a barbearia tiver slug definido, ele será usado. Se não tiver, o sistema gera o link com base no nome da barbearia.

@@ -290,3 +290,12 @@ add column if not exists booking_min_advance_minutes integer not null default 0;
 
 comment on column public.barbershops.booking_min_advance_minutes is
 'Tempo mínimo, em minutos, que o cliente precisa respeitar antes de marcar pelo link público.';
+
+
+-- Permite que o link público /agenda/nomedabarbearia encontre a barbearia ativa.
+drop policy if exists "public_read_active_barbershops" on public.barbershops;
+drop policy if exists "public_read_active_barbershops_name_link" on public.barbershops;
+
+create policy "public_read_active_barbershops_name_link" on public.barbershops
+for select to anon
+using (active = true and subscription_status = 'active');
