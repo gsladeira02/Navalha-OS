@@ -1,0 +1,29 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrar | NavalhaOS</title><link rel="stylesheet" href="css/style.css"></head><body class="login-page">
+  <section class="login-card">
+    <div class="brand"><div class="logo">N</div><div><h1>NavalhaOS</h1><p>Gestão afiada para barbearias</p></div></div>
+    <div class="notice">Cadastro público desativado. O acesso só é liberado após assinatura e criação manual da conta no Supabase.</div>
+    <form id="loginForm" class="form">
+      <div class="field"><label>E-mail</label><input id="email" type="email" required placeholder="cliente@email.com"></div>
+      <div class="field"><label>Senha</label><input id="password" type="password" required placeholder="••••••••"></div>
+      <button class="btn primary full" type="submit">Entrar no sistema</button>
+    </form>
+    <p style="color:var(--muted);font-size:13px;text-align:center;margin-top:18px">Não existe criação de conta nesta tela.</p>
+  </section>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/config.js"></script><script src="js/supabase-client.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if(error){ alert('Login inválido ou assinatura não liberada.'); return; }
+      const { data: shop } = await db.from('barbershops').select('id,active,subscription_status').eq('owner_id', data.user.id).maybeSingle();
+      if(!shop || shop.active === false || shop.subscription_status !== 'active'){
+        await db.auth.signOut();
+        alert('Acesso bloqueado. A assinatura precisa estar ativa para entrar.');
+        return;
+      }
+      location.href='dashboard.html';
+    });
+  </script>
+</body></html>
