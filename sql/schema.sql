@@ -585,3 +585,16 @@ add column if not exists status_checked_at timestamptz;
 
 grant select, insert, update, delete on public.subscription_payments to authenticated;
 grant select, insert, update, delete on public.subscription_payments to service_role;
+
+
+-- Dados obrigatórios do primeiro acesso
+alter table public.barbershops
+add column if not exists admin_name text,
+add column if not exists admin_cpf text,
+add column if not exists admin_phone text,
+add column if not exists cnpj text,
+add column if not exists setup_completed boolean not null default false,
+add column if not exists setup_completed_at timestamptz;
+
+grant select, update on public.barbershops to authenticated;
+grant select, update on public.barbershops to service_role;

@@ -237,3 +237,17 @@ A aba **Assinaturas** agora mostra o status de cada cobrança em **Pagamentos re
 Foi adicionado o botão **Atualizar status**, que consulta o Asaas pela Edge Function `sync-payment-status`.
 
 Também foi atualizada a função `payment-webhook` para atualizar automaticamente o status quando o Asaas enviar eventos de pagamento.
+
+
+## Primeiro acesso completo
+
+No primeiro login, além de trocar a senha, o usuário precisa preencher:
+
+- nome do administrador;
+- CPF do administrador;
+- celular do administrador;
+- nome da barbearia;
+- CNPJ da barbearia;
+- celular da barbearia.
+
+Esses dados são salvos na tabela `barbershops`. Rode o `sql/schema.sql` atualizado antes de testar.
