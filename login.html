@@ -8,30 +8,63 @@
 </head>
 <body class="login-page">
   <section class="login-shell">
-    <div class="login-panel hero-panel">
+    <div class="login-panel login-hero">
+      <div class="login-kicker">Sistema premium para barbearias</div>
       <img class="hero-logo" src="assets/logo.png" alt="NavalhaOS">
-      <h1>NavalhaOS</h1>
-      <p>Um sistema pensado para funcionar muito bem no celular, com agenda, clientes e caixa em um só lugar.</p>
+      <h1>Gestão profissional, agenda online e operação na palma da mão.</h1>
+      <p>O NavalhaOS foi pensado para a rotina real da barbearia: rápido no celular, elegante no visual e simples no dia a dia.</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><strong>Agenda online</strong><span>Compartilhe o link e receba horários automaticamente.</span></div>
+        <div class="hero-stat"><strong>Equipe e serviços</strong><span>Organize barbeiros, preços, duração e disponibilidade.</span></div>
+        <div class="hero-stat"><strong>Caixa e ganhos</strong><span>Acompanhe faturamento e comissões sem planilhas soltas.</span></div>
+      </div>
       <ul class="hero-list">
-        <li>Agenda rápida para sua barbearia</li>
-        <li>Controle financeiro com visual profissional</li>
-        <li>Gestão simples para o dia a dia</li>
+        <li><strong>Visual mobile-first</strong>Uma experiência refinada para quem usa o sistema principalmente pelo celular.</li>
+        <li><strong>Atendimento mais profissional</strong>Agendamento, clientes e operação centralizados em um único lugar.</li>
+        <li><strong>Plano único</strong>Todas as funcionalidades incluídas no mesmo acesso.</li>
       </ul>
     </div>
+
     <div class="login-panel login-card">
-      <img class="login-logo" src="assets/logo.png" alt="NavalhaOS">
-      <h2>Entrar no sistema</h2>
-      <form id="loginForm" class="form">
-        <div class="field"><label>E-mail</label><input id="email" type="email" required placeholder="cliente@email.com"></div>
-        <div class="field"><label>Senha</label><input id="password" type="password" required placeholder="••••••••"></div>
-        <button class="btn primary full" type="submit">Entrar</button>
-      </form>
-      <p class="subtle center">Acesso exclusivo para clientes ativos.</p>
+      <div class="login-card-head">
+        <img class="login-logo" src="assets/logo.png" alt="NavalhaOS">
+        <h2>Acesse sua barbearia</h2>
+        <p class="subtle">Entre com o e-mail e a senha liberados para sua assinatura.</p>
+      </div>
+
+      <div class="auth-note">O cadastro não é público. O acesso é liberado após a contratação do NavalhaOS.</div>
+
+      <div class="login-form-wrap">
+        <form id="loginForm" class="form">
+          <div class="field">
+            <label>E-mail</label>
+            <input id="email" type="email" required placeholder="cliente@barbearia.com">
+          </div>
+          <div class="field">
+            <label>Senha</label>
+            <div class="input-with-action">
+              <input id="password" type="password" required placeholder="Digite sua senha">
+              <button type="button" class="toggle-pass" id="togglePassword">Ver</button>
+            </div>
+          </div>
+          <div class="login-actions">
+            <button class="btn primary full" type="submit">Entrar no sistema</button>
+          </div>
+        </form>
+
+        <div class="login-helper">
+          <p class="subtle">Se o acesso ainda não foi liberado, fale com o responsável pela assinatura.</p>
+          <div class="login-footer-note">Acesso exclusivo para clientes ativos</div>
+        </div>
+      </div>
+
+      <div class="legal-links"><a href="privacidade.html">Privacidade</a><span>•</span><a href="termos.html">Termos</a></div>
     </div>
-  </section><div class="legal-links"><a href="privacidade.html">Privacidade</a><span>•</span><a href="termos.html">Termos</a></div>
+  </section>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
-  <script src="js/supabase-client.js"></script><script src="js/ui.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/login.js"></script>
 </body>
 </html>

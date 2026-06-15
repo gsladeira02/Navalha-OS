@@ -34,24 +34,50 @@ a{text-decoration:none;color:inherit}img{max-width:100%;display:block}button,inp
 body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);background-size:28px 28px;mask-image:linear-gradient(180deg,rgba(0,0,0,.35),transparent 86%);opacity:.22}
 
 /* Login e agendamento público */
-.login-page,.booking-page{min-height:100vh;padding:16px;background:
-  radial-gradient(circle at top left,#13335c,transparent 36%),
-  radial-gradient(circle at bottom right,#4c151a,transparent 28%),
-  linear-gradient(180deg,#08111f,#070f18)}
+.login-page,.booking-page{min-height:100vh;padding:18px;background:
+  radial-gradient(circle at top left, rgba(31,95,255,.18), transparent 32%),
+  radial-gradient(circle at bottom right, rgba(217,47,61,.14), transparent 24%),
+  linear-gradient(180deg,#07111f,#08111c)}
 .login-page{display:flex;align-items:center;justify-content:center}
-.login-shell{display:grid;grid-template-columns:1fr;gap:14px;max-width:980px;width:100%}
-.login-panel,.booking-card{background:linear-gradient(180deg,rgba(17,38,64,.96),rgba(12,29,50,.98));border:1px solid rgba(88,131,189,.28);border-radius:28px;box-shadow:var(--shadow)}
-.hero-panel{padding:24px;background:linear-gradient(180deg,rgba(20,44,76,.98),rgba(14,31,53,.92))}
-.hero-logo,.login-logo,.booking-logo{background:#fff;padding:8px;border-radius:18px}
-.hero-logo{width:118px;margin:0 auto 14px}.login-logo{width:96px;margin:0 auto 12px}.booking-logo{width:104px;margin:0 auto 12px}
-.hero-panel h1,.booking-header h1{margin:0;font-size:30px;letter-spacing:-.03em;text-align:center}
-.hero-panel p,.booking-header p{margin:8px 0 0;color:var(--muted);font-size:15px;line-height:1.5;text-align:center}
-.hero-list{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:10px}
-.hero-list li{padding:13px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06);font-size:14px;color:#edf4ff}
-.login-card{padding:24px}.login-card h2{margin:6px 0 18px;text-align:center;font-size:24px}
-.subtle{color:var(--muted);font-size:14px;line-height:1.45}.center{text-align:center}
+.login-shell{display:grid;grid-template-columns:1fr;gap:16px;max-width:1040px;width:100%}
+.login-panel,.booking-card{background:linear-gradient(180deg,rgba(17,38,64,.96),rgba(12,29,50,.98));border:1px solid rgba(88,131,189,.28);border-radius:30px;box-shadow:var(--shadow)}
+.login-hero{padding:22px;position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(19,44,76,.98),rgba(13,29,50,.96))}
+.login-hero::before{content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle, rgba(31,95,255,.28), transparent 68%)}
+.login-hero::after{content:"";position:absolute;left:-20px;bottom:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle, rgba(217,47,61,.18), transparent 68%)}
+.hero-logo,.login-logo,.booking-logo{background:#fff;padding:8px;border-radius:18px;box-shadow:0 12px 24px rgba(0,0,0,.18)}
+.hero-logo{width:84px;margin:0 0 16px}.login-logo{width:70px;margin:0 auto 12px}.booking-logo{width:104px;margin:0 auto 12px}
+.login-kicker{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#dfeaff;font-size:12px;font-weight:800;margin-bottom:14px}
+.login-hero h1,.booking-header h1{margin:0;font-size:31px;letter-spacing:-.04em;line-height:1.02}
+.login-hero p,.booking-header p{margin:10px 0 0;color:var(--muted-2);font-size:15px;line-height:1.58}
+.hero-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+.hero-stat{padding:14px 12px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06)}
+.hero-stat strong{display:block;font-size:15px;line-height:1.25}
+.hero-stat span{display:block;font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+.hero-list{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.hero-list li{padding:13px 14px;border-radius:16px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06);font-size:14px;color:#edf4ff;line-height:1.45}
+.hero-list li strong{display:block;margin-bottom:2px;font-size:14px}
+.login-card{padding:24px;display:grid;gap:14px;align-content:start}
+.login-card-head{text-align:center}
+.login-card h2{margin:0;font-size:26px;letter-spacing:-.03em}
+.login-card p{margin:8px 0 0}
+.auth-note{padding:13px 14px;border-radius:16px;background:rgba(31,95,255,.09);border:1px solid rgba(31,95,255,.14);color:#d9e7ff;font-size:13px;line-height:1.45}
+.login-form-wrap{display:grid;gap:14px}
+.input-with-action{position:relative}
+.input-with-action input{padding-right:54px}
+.toggle-pass{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#d7e4fb;padding:6px 8px;border-radius:10px;font-weight:700;cursor:pointer}
+.toggle-pass:hover{background:rgba(255,255,255,.06)}
+.login-actions{display:grid;gap:10px}
+.login-helper{display:grid;gap:10px}
+.login-helper .subtle{margin:0;text-align:center}
+.login-footer-note{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:12px;line-height:1.4}
+.login-footer-note::before,.login-footer-note::after{content:"";height:1px;width:100%;max-width:64px;background:rgba(255,255,255,.08)}
 .booking-wrap{max-width:580px;margin:0 auto;display:grid;gap:14px}.booking-header{text-align:center;padding:18px 0 8px}
-
+@media (min-width:760px){
+  .login-shell{grid-template-columns:minmax(0,1.1fr) minmax(360px,.9fr);gap:18px}
+  .login-card{padding:30px}
+  .login-card-head{text-align:left}
+  .login-logo{margin:0 0 12px}
+}
 /* App */
 .app{min-height:100vh;padding-bottom:calc(102px + env(safe-area-inset-bottom));position:relative}
 .sidebar{position:sticky;top:0;z-index:30;padding:14px;background:rgba(7,17,31,.82);backdrop-filter:blur(18px);border-bottom:1px solid rgba(92,132,188,.14)}

@@ -1,9 +1,20 @@
+const loginForm = document.getElementById('loginForm');
+const passwordInput = document.getElementById('password');
+const togglePasswordBtn = document.getElementById('togglePassword');
 
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+if (togglePasswordBtn && passwordInput) {
+  togglePasswordBtn.addEventListener('click', () => {
+    const showing = passwordInput.type === 'text';
+    passwordInput.type = showing ? 'password' : 'text';
+    togglePasswordBtn.textContent = showing ? 'Ver' : 'Ocultar';
+  });
+}
+
+loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
-  const button = e.target.querySelector('button');
+  const password = passwordInput.value;
+  const button = e.target.querySelector('button[type="submit"]');
   button.disabled = true;
   button.textContent = 'Entrando...';
   try {
@@ -26,6 +37,6 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     showToast('E-mail ou senha inválidos.', 'error');
   } finally {
     button.disabled = false;
-    button.textContent = 'Entrar';
+    button.textContent = 'Entrar no sistema';
   }
 });
