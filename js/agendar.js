@@ -33,7 +33,7 @@ async function initBooking(){
   const { data: shopData, error: shopError } = await db
     .from('barbershops')
     .select('id,name,active,subscription_status,slug')
-    .eq('slug', slug)
+    .or(`slug.eq.${slug},id.eq.${slug}`)
     .eq('active', true)
     .eq('subscription_status', 'active')
     .maybeSingle();

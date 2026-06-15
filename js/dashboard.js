@@ -1,22 +1,7 @@
 (async () => {
-  await requireAuth('Dashboard', 'Resumo da sua operação hoje');
+  await requireAuth('Dashboard', 'Acompanhe sua operação e compartilhe a agenda online da barbearia');
   const shopId = activeShop.id;
-  const bookingLink = `${location.origin}/agendar.html?slug=${encodeURIComponent(activeShop.slug || activeShop.id)}`;
-  const bookingInput = document.getElementById('bookingLink');
-  if (bookingInput) bookingInput.value = bookingLink;
-  const copyBtn = document.getElementById('copyBookingLink');
-  if (copyBtn) {
-    copyBtn.onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(bookingLink);
-        copyBtn.textContent = 'Link copiado';
-        setTimeout(() => copyBtn.textContent = 'Copiar link', 1600);
-      } catch {
-        bookingInput.select();
-        document.execCommand('copy');
-      }
-    };
-  }
+  setupBookingShare();
   const today = todayISO();
   const monthStart = today.slice(0, 8) + '01';
 
@@ -34,8 +19,10 @@
   const monthCash = cash.filter(i => i.entry_date >= monthStart && i.type === 'entrada');
   const todayAppts = appointments.filter(i => i.appointment_date === today);
   const todayDone = todayAppts.filter(i => i.status === 'concluido');
+  const todayRevenueValue = currency.format(todayCash.reduce((s,i)=>s+Number(i.amount||0),0));
 
-  document.getElementById('todayRevenue').textContent = currency.format(todayCash.reduce((s,i)=>s+Number(i.amount||0),0));
+  document.getElementById('todayRevenue').textContent = todayRevenueValue;
+  document.getElementById('todayRevenueHero').textContent = todayRevenueValue;
   document.getElementById('monthRevenue').textContent = currency.format(monthCash.reduce((s,i)=>s+Number(i.amount||0),0));
   document.getElementById('todayAppointments').textContent = todayAppts.length;
   document.getElementById('doneToday').textContent = todayDone.length;
@@ -56,3 +43,38 @@
       <td data-label="Valor">${currency.format(Number(item.price || 0))}</td>
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">Nenhum horário para hoje.</div></td></tr>`;
 })();
+
+function setupBookingShare(){
+  const bookingLink = `${location.origin}/agendar.html?slug=${encodeURIComponent(activeShop.slug || activeShop.id)}`;
+  const bookingInput = document.getElementById('bookingLink');
+  if (bookingInput) bookingInput.value = bookingLink;
+  const copyBtn = document.getElementById('copyBookingLink');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(bookingLink);
+        showToast('Link copiado.', 'success');
+      } catch {
+        if (bookingInput) {
+          bookingInput.focus();
+          bookingInput.select();
+          document.execCommand('copy');
+          showToast('Link copiado.', 'success');
+        }
+      }
+    };
+  }
+  const shareBtn = document.getElementById('shareBookingLink');
+  if (shareBtn) {
+    shareBtn.onclick = async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: `Agenda ${activeShop.name}`, text: `Agende seu horário na ${activeShop.name}`, url: bookingLink });
+        } else {
+          await navigator.clipboard.writeText(bookingLink);
+          showToast('Link copiado para compartilhar.', 'success');
+        }
+      } catch (err) {}
+    };
+  }
+}

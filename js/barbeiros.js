@@ -13,7 +13,7 @@ async function loadBarbers(){
 window.toggleBarber = async (id, active) => { await db.from('barbers').update({ active }).eq('id', id).eq('barbershop_id', activeShop.id); loadBarbers(); };
 window.removeBarber = async (id) => { if (!confirm('Excluir barbeiro?')) return; await db.from('barbers').delete().eq('id', id).eq('barbershop_id', activeShop.id); loadBarbers(); };
 (async () => {
-  await requireAuth('Barbeiros', 'Equipe e comissões da sua barbearia');
+  await requireAuth('Barbeiros', 'Gerencie a equipe, comissões e status dos profissionais');
   await loadBarbers();
   document.getElementById('form').addEventListener('submit', async (e) => {
     e.preventDefault();

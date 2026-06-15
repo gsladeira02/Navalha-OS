@@ -1,3 +1,39 @@
+
+function setupBookingShare(){
+  const bookingLink = `${location.origin}/agendar.html?slug=${encodeURIComponent(activeShop.slug || activeShop.id)}`;
+  const bookingInput = document.getElementById('bookingLink');
+  if (bookingInput) bookingInput.value = bookingLink;
+  const copyBtn = document.getElementById('copyBookingLink');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(bookingLink);
+        showToast('Link copiado.', 'success');
+      } catch {
+        if (bookingInput) {
+          bookingInput.focus();
+          bookingInput.select();
+          document.execCommand('copy');
+          showToast('Link copiado.', 'success');
+        }
+      }
+    };
+  }
+  const shareBtn = document.getElementById('shareBookingLink');
+  if (shareBtn) {
+    shareBtn.onclick = async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: `Agenda ${activeShop.name}`, text: `Agende seu horário na ${activeShop.name}`, url: bookingLink });
+        } else {
+          await navigator.clipboard.writeText(bookingLink);
+          showToast('Link copiado para compartilhar.', 'success');
+        }
+      } catch (err) {}
+    };
+  }
+}
+
 let customers = [];
 let barbers = [];
 let services = [];
@@ -66,7 +102,8 @@ window.completeAppointment = async (id) => {
 };
 
 (async () => {
-  await requireAuth('Agenda', 'Controle de horários da barbearia');
+  await requireAuth('Agenda', 'Organize os horários e acompanhe o dia da barbearia em um só lugar');
+  setupBookingShare();
   document.getElementById('appointment_date').value = todayISO();
   document.getElementById('filterDate').value = todayISO();
   await loadRefs();

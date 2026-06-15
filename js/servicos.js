@@ -14,7 +14,7 @@ async function loadServices(){
 window.toggleService = async (id, active) => { await db.from('services').update({ active }).eq('id', id).eq('barbershop_id', activeShop.id); loadServices(); };
 window.removeService = async (id) => { if (!confirm('Excluir serviço?')) return; await db.from('services').delete().eq('id', id).eq('barbershop_id', activeShop.id); loadServices(); };
 (async () => {
-  await requireAuth('Serviços', 'Tabela de serviços e precificação');
+  await requireAuth('Serviços', 'Organize serviços, preços, duração e comissão específica');
   await loadServices();
   document.getElementById('form').addEventListener('submit', async (e) => {
     e.preventDefault();

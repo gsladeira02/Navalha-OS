@@ -20,7 +20,7 @@ async function loadCash(){
 }
 window.removeCash = async (id) => { if (!confirm('Excluir lançamento?')) return; await db.from('cash_entries').delete().eq('id', id).eq('barbershop_id', activeShop.id); loadCash(); };
 (async () => {
-  await requireAuth('Caixa', 'Entradas e saídas da barbearia');
+  await requireAuth('Caixa', 'Controle entradas, saídas e resultado diário da barbearia');
   document.getElementById('filterDate').value = todayISO();
   document.getElementById('entry_date').value = todayISO();
   await loadCash();

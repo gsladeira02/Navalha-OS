@@ -66,7 +66,7 @@ window.removeBlock = async (id) => {
 };
 
 (async () => {
-  await requireAuth('Horários', 'Defina quando cada barbeiro atende e bloqueie dias específicos');
+  await requireAuth('Horários', 'Configure disponibilidade semanal e bloqueios pontuais');
   await loadBarbers();
   await loadAvailability();
   await loadBlocks();
