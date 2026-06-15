@@ -8,6 +8,7 @@ create table if not exists public.barbershops (
   plan text default 'professional',
   subscription_status text not null default 'inactive',
   active boolean not null default false,
+  slug text unique,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   constraint barbershops_owner_id_unique unique (owner_id)
@@ -77,8 +78,10 @@ create table if not exists public.cash_entries (
   created_at timestamptz default now()
 );
 
-grant usage on schema public to authenticated;
+grant usage on schema public to authenticated, anon;
 grant select, insert, update, delete on all tables in schema public to authenticated;
+grant select on public.barbershops, public.barbers, public.services to anon;
+grant select, insert on public.customers, public.appointments to anon;
 
 alter table public.barbershops enable row level security;
 alter table public.barbers enable row level security;
@@ -135,3 +138,40 @@ create policy "cash_entries_manage_own" on public.cash_entries
 for all to authenticated
 using (public.user_owns_barbershop(barbershop_id))
 with check (public.user_owns_barbershop(barbershop_id));
+
+
+-- Políticas públicas para link de agendamento
+drop policy if exists "public_read_active_barbershops" on public.barbershops;
+create policy "public_read_active_barbershops" on public.barbershops
+for select to anon
+using (active = true and subscription_status = 'active' and slug is not null);
+
+drop policy if exists "public_read_active_barbers" on public.barbers;
+create policy "public_read_active_barbers" on public.barbers
+for select to anon
+using (active = true and exists (select 1 from public.barbershops b where b.id = barbers.barbershop_id and b.active = true and b.subscription_status = 'active'));
+
+drop policy if exists "public_read_active_services" on public.services;
+create policy "public_read_active_services" on public.services
+for select to anon
+using (active = true and exists (select 1 from public.barbershops b where b.id = services.barbershop_id and b.active = true and b.subscription_status = 'active'));
+
+drop policy if exists "public_insert_customers" on public.customers;
+create policy "public_insert_customers" on public.customers
+for insert to anon
+with check (exists (select 1 from public.barbershops b where b.id = customers.barbershop_id and b.active = true and b.subscription_status = 'active'));
+
+drop policy if exists "public_select_customers_by_phone" on public.customers;
+create policy "public_select_customers_by_phone" on public.customers
+for select to anon
+using (exists (select 1 from public.barbershops b where b.id = customers.barbershop_id and b.active = true and b.subscription_status = 'active'));
+
+drop policy if exists "public_insert_appointments" on public.appointments;
+create policy "public_insert_appointments" on public.appointments
+for insert to anon
+with check (status = 'marcado' and exists (select 1 from public.barbershops b where b.id = appointments.barbershop_id and b.active = true and b.subscription_status = 'active'));
+
+drop policy if exists "public_select_appointments_slots" on public.appointments;
+create policy "public_select_appointments_slots" on public.appointments
+for select to anon
+using (exists (select 1 from public.barbershops b where b.id = appointments.barbershop_id and b.active = true and b.subscription_status = 'active'));

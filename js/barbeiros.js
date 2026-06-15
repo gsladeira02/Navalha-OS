@@ -3,11 +3,11 @@ async function loadBarbers(){
   const rows = document.getElementById('rows');
   rows.innerHTML = (data || []).length ? data.map(item => `
     <tr>
-      <td>${escapeHtml(item.name)}</td>
-      <td>${escapeHtml(item.phone || '-')}</td>
-      <td>${Number(item.commission_percent || 0)}%</td>
-      <td><span class="badge ${item.active ? 'ativo':'inativo'}">${item.active ? 'ativo':'inativo'}</span></td>
-      <td><div class="actions"><button class="btn secondary small" onclick="toggleBarber('${item.id}', ${item.active ? 'false':'true'})">${item.active ? 'Inativar':'Ativar'}</button><button class="btn danger small" onclick="removeBarber('${item.id}')">Excluir</button></div></td>
+      <td data-label="Nome">${escapeHtml(item.name)}</td>
+      <td data-label="Telefone">${escapeHtml(item.phone || '-')}</td>
+      <td data-label="Comissão">${Number(item.commission_percent || 0)}%</td>
+      <td data-label="Status"><span class="badge ${item.active ? 'ativo':'inativo'}">${item.active ? 'ativo':'inativo'}</span></td>
+      <td data-label="Ações"><div class="actions"><button class="btn secondary small" onclick="toggleBarber('${item.id}', ${item.active ? 'false':'true'})">${item.active ? 'Inativar':'Ativar'}</button><button class="btn danger small" onclick="removeBarber('${item.id}')">Excluir</button></div></td>
     </tr>`).join('') : `<tr><td colspan="5"><div class="empty">Nenhum barbeiro cadastrado.</div></td></tr>`;
 }
 window.toggleBarber = async (id, active) => { await db.from('barbers').update({ active }).eq('id', id).eq('barbershop_id', activeShop.id); loadBarbers(); };

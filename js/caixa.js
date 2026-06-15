@@ -10,12 +10,12 @@ async function loadCash(){
   const rows = document.getElementById('rows');
   rows.innerHTML = items.length ? items.map(item => `
     <tr>
-      <td>${dateBR(item.entry_date)}</td>
-      <td>${escapeHtml(item.type)}</td>
-      <td>${escapeHtml(item.description)}</td>
-      <td>${escapeHtml(item.payment_method || '-')}</td>
-      <td>${currency.format(Number(item.amount || 0))}</td>
-      <td><button class="btn danger small" onclick="removeCash('${item.id}')">Excluir</button></td>
+      <td data-label="Data">${dateBR(item.entry_date)}</td>
+      <td data-label="Tipo">${escapeHtml(item.type)}</td>
+      <td data-label="Descrição">${escapeHtml(item.description)}</td>
+      <td data-label="Pagamento">${escapeHtml(item.payment_method || '-')}</td>
+      <td data-label="Valor">${currency.format(Number(item.amount || 0))}</td>
+      <td data-label="Ações"><button class="btn danger small" onclick="removeCash('${item.id}')">Excluir</button></td>
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">Nenhum lançamento para esta data.</div></td></tr>`;
 }
 window.removeCash = async (id) => { if (!confirm('Excluir lançamento?')) return; await db.from('cash_entries').delete().eq('id', id).eq('barbershop_id', activeShop.id); loadCash(); };

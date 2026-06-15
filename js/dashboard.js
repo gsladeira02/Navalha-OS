@@ -1,6 +1,22 @@
 (async () => {
   await requireAuth('Dashboard', 'Resumo da sua operação hoje');
   const shopId = activeShop.id;
+  const bookingLink = `${location.origin}/agendar.html?slug=${encodeURIComponent(activeShop.slug || activeShop.id)}`;
+  const bookingInput = document.getElementById('bookingLink');
+  if (bookingInput) bookingInput.value = bookingLink;
+  const copyBtn = document.getElementById('copyBookingLink');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(bookingLink);
+        copyBtn.textContent = 'Link copiado';
+        setTimeout(() => copyBtn.textContent = 'Copiar link', 1600);
+      } catch {
+        bookingInput.select();
+        document.execCommand('copy');
+      }
+    };
+  }
   const today = todayISO();
   const monthStart = today.slice(0, 8) + '01';
 
@@ -32,11 +48,11 @@
   const sorted = todayAppts.sort((a,b)=> String(a.start_time).localeCompare(String(b.start_time)));
   rows.innerHTML = sorted.length ? sorted.map(item => `
     <tr>
-      <td>${item.start_time?.slice(0,5) || '-'}</td>
-      <td>${escapeHtml(item.customer_name || '-')}</td>
-      <td>${escapeHtml(item.barber_name || '-')}</td>
-      <td>${escapeHtml(item.service_name || '-')}</td>
-      <td>${badge(item.status)}</td>
-      <td>${currency.format(Number(item.price || 0))}</td>
+      <td data-label="Hora">${item.start_time?.slice(0,5) || '-'}</td>
+      <td data-label="Cliente">${escapeHtml(item.customer_name || '-')}</td>
+      <td data-label="Barbeiro">${escapeHtml(item.barber_name || '-')}</td>
+      <td data-label="Serviço">${escapeHtml(item.service_name || '-')}</td>
+      <td data-label="Status">${badge(item.status)}</td>
+      <td data-label="Valor">${currency.format(Number(item.price || 0))}</td>
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">Nenhum horário para hoje.</div></td></tr>`;
 })();

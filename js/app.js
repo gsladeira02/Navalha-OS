@@ -18,7 +18,7 @@ window.requireAuth = async function(pageTitle, subtitle){
   }
   const { data: shop, error } = await db
     .from('barbershops')
-    .select('id,name,plan,active,subscription_status')
+    .select('id,name,plan,active,subscription_status,slug')
     .eq('owner_id', session.user.id)
     .maybeSingle();
   if (error || !shop || !shop.active || shop.subscription_status !== 'active') {

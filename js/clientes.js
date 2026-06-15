@@ -3,11 +3,11 @@ async function loadCustomers(){
   const rows = document.getElementById('rows');
   rows.innerHTML = (data || []).length ? data.map(item => `
     <tr>
-      <td>${escapeHtml(item.name)}</td>
-      <td>${escapeHtml(item.phone || '-')}</td>
-      <td>${dateBR(item.birthday)}</td>
-      <td>${escapeHtml(item.notes || '-')}</td>
-      <td><div class="actions"><button class="btn danger small" onclick="removeCustomer('${item.id}')">Excluir</button></div></td>
+      <td data-label="Nome">${escapeHtml(item.name)}</td>
+      <td data-label="Telefone">${escapeHtml(item.phone || '-')}</td>
+      <td data-label="Aniversário">${dateBR(item.birthday)}</td>
+      <td data-label="Obs.">${escapeHtml(item.notes || '-')}</td>
+      <td data-label="Ações"><div class="actions"><button class="btn danger small" onclick="removeCustomer('${item.id}')">Excluir</button></div></td>
     </tr>`).join('') : `<tr><td colspan="5"><div class="empty">Nenhum cliente cadastrado.</div></td></tr>`;
 }
 window.removeCustomer = async (id) => {

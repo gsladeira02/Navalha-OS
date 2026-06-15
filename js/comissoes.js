@@ -21,11 +21,11 @@ async function loadCommissions(){
   const entries = Object.entries(grouped);
   rows.innerHTML = entries.length ? entries.map(([name, info]) => `
     <tr>
-      <td>${escapeHtml(name)}</td>
-      <td>${info.count}</td>
-      <td>${currency.format(info.total)}</td>
-      <td>${info.commissionPercent}%</td>
-      <td>${currency.format(info.commissionValue)}</td>
+      <td data-label="Barbeiro">${escapeHtml(name)}</td>
+      <td data-label="Atendimentos">${info.count}</td>
+      <td data-label="Faturamento">${currency.format(info.total)}</td>
+      <td data-label="Comissão">${info.commissionPercent}%</td>
+      <td data-label="A receber">${currency.format(info.commissionValue)}</td>
     </tr>`).join('') : `<tr><td colspan="5"><div class="empty">Nenhum atendimento concluído no período.</div></td></tr>`;
   document.getElementById('grandTotal').textContent = currency.format(items.reduce((s,i)=>s+Number(i.price||0),0));
   document.getElementById('grandCommission').textContent = currency.format(entries.reduce((s,[,info])=>s+info.commissionValue,0));

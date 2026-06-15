@@ -27,13 +27,13 @@ async function loadAppointments(){
   const rows = document.getElementById('rows');
   rows.innerHTML = items.length ? items.map(item => `
     <tr>
-      <td>${item.start_time?.slice(0,5) || '-'}</td>
-      <td>${escapeHtml(item.customer_name || '-')}</td>
-      <td>${escapeHtml(item.barber_name || '-')}</td>
-      <td>${escapeHtml(item.service_name || '-')}</td>
-      <td>${badge(item.status)}</td>
-      <td>${currency.format(Number(item.price || 0))}</td>
-      <td><div class="actions">${item.status !== 'concluido' ? `<button class="btn success small" onclick="completeAppointment('${item.id}')">Concluir</button>`:''}${item.status !== 'cancelado' ? `<button class="btn secondary small" onclick="cancelAppointment('${item.id}')">Cancelar</button>`:''}<button class="btn danger small" onclick="removeAppointment('${item.id}')">Excluir</button></div></td>
+      <td data-label="Hora">${item.start_time?.slice(0,5) || '-'}</td>
+      <td data-label="Cliente">${escapeHtml(item.customer_name || '-')}</td>
+      <td data-label="Barbeiro">${escapeHtml(item.barber_name || '-')}</td>
+      <td data-label="Serviço">${escapeHtml(item.service_name || '-')}</td>
+      <td data-label="Status">${badge(item.status)}</td>
+      <td data-label="Valor">${currency.format(Number(item.price || 0))}</td>
+      <td data-label="Ações"><div class="actions">${item.status !== 'concluido' ? `<button class="btn success small" onclick="completeAppointment('${item.id}')">Concluir</button>`:''}${item.status !== 'cancelado' ? `<button class="btn secondary small" onclick="cancelAppointment('${item.id}')">Cancelar</button>`:''}<button class="btn danger small" onclick="removeAppointment('${item.id}')">Excluir</button></div></td>
     </tr>`).join('') : `<tr><td colspan="7"><div class="empty">Nenhum horário nesta data.</div></td></tr>`;
 }
 

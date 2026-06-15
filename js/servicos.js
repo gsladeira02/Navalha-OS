@@ -3,12 +3,12 @@ async function loadServices(){
   const rows = document.getElementById('rows');
   rows.innerHTML = (data || []).length ? data.map(item => `
     <tr>
-      <td>${escapeHtml(item.name)}</td>
-      <td>${currency.format(Number(item.price || 0))}</td>
-      <td>${item.duration_minutes} min</td>
-      <td>${item.commission_percent != null ? Number(item.commission_percent) + '%' : '-'}</td>
-      <td><span class="badge ${item.active ? 'ativo':'inativo'}">${item.active ? 'ativo':'inativo'}</span></td>
-      <td><div class="actions"><button class="btn secondary small" onclick="toggleService('${item.id}', ${item.active ? 'false':'true'})">${item.active ? 'Inativar':'Ativar'}</button><button class="btn danger small" onclick="removeService('${item.id}')">Excluir</button></div></td>
+      <td data-label="Serviço">${escapeHtml(item.name)}</td>
+      <td data-label="Preço">${currency.format(Number(item.price || 0))}</td>
+      <td data-label="Duração">${item.duration_minutes} min</td>
+      <td data-label="Comissão">${item.commission_percent != null ? Number(item.commission_percent) + '%' : '-'}</td>
+      <td data-label="Status"><span class="badge ${item.active ? 'ativo':'inativo'}">${item.active ? 'ativo':'inativo'}</span></td>
+      <td data-label="Ações"><div class="actions"><button class="btn secondary small" onclick="toggleService('${item.id}', ${item.active ? 'false':'true'})">${item.active ? 'Inativar':'Ativar'}</button><button class="btn danger small" onclick="removeService('${item.id}')">Excluir</button></div></td>
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">Nenhum serviço cadastrado.</div></td></tr>`;
 }
 window.toggleService = async (id, active) => { await db.from('services').update({ active }).eq('id', id).eq('barbershop_id', activeShop.id); loadServices(); };

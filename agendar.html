@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agendar horário | NavalhaOS</title><link rel="stylesheet" href="css/style.css"></head>
+<body class="booking-page">
+  <div class="booking-wrap">
+    <header class="booking-header"><img class="booking-logo" src="assets/logo.png" alt="NavalhaOS"><h1 id="shopTitle">Agendar horário</h1><p id="shopSubtitle">Escolha serviço, barbeiro e horário pelo celular.</p></header>
+    <section class="booking-card" id="bookingCard">
+      <form id="bookingForm" class="form">
+        <div class="field"><label>Serviço</label><select id="service_id" required></select></div>
+        <div class="field"><label>Barbeiro</label><select id="barber_id" required></select></div>
+        <div class="field"><label>Data</label><input id="appointment_date" type="date" required></div>
+        <div class="field"><label>Horários disponíveis</label><div id="slots" class="slot-grid"></div></div>
+        <div class="field"><label>Seu nome</label><input id="customer_name" required placeholder="Digite seu nome"></div>
+        <div class="field"><label>WhatsApp</label><input id="customer_phone" required placeholder="(27) 99999-9999"></div>
+        <button class="btn primary full" type="submit">Confirmar horário</button>
+      </form>
+    </section>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/config.js"></script><script src="js/supabase-client.js"></script><script src="js/app.js"></script><script src="js/agendar.js"></script>
+</body></html>
