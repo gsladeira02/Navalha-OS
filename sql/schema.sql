@@ -78,9 +78,34 @@ create table if not exists public.cash_entries (
   created_at timestamptz default now()
 );
 
+
+create table if not exists public.barber_availability (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  barber_id uuid not null references public.barbers(id) on delete cascade,
+  weekday integer not null check (weekday between 0 and 6),
+  start_time time not null,
+  end_time time not null,
+  break_start time,
+  break_end time,
+  active boolean not null default true,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.schedule_blocks (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  barber_id uuid references public.barbers(id) on delete cascade,
+  block_date date not null,
+  start_time time,
+  end_time time,
+  reason text,
+  created_at timestamptz default now()
+);
+
 grant usage on schema public to authenticated, anon;
 grant select, insert, update, delete on all tables in schema public to authenticated;
-grant select on public.barbershops, public.barbers, public.services to anon;
+grant select on public.barbershops, public.barbers, public.services, public.barber_availability, public.schedule_blocks to anon;
 grant select, insert on public.customers, public.appointments to anon;
 
 alter table public.barbershops enable row level security;
@@ -89,6 +114,8 @@ alter table public.services enable row level security;
 alter table public.customers enable row level security;
 alter table public.appointments enable row level security;
 alter table public.cash_entries enable row level security;
+alter table public.barber_availability enable row level security;
+alter table public.schedule_blocks enable row level security;
 
 drop policy if exists "barbershops_select_own" on public.barbershops;
 create policy "barbershops_select_own" on public.barbershops
@@ -175,3 +202,41 @@ drop policy if exists "public_select_appointments_slots" on public.appointments;
 create policy "public_select_appointments_slots" on public.appointments
 for select to anon
 using (exists (select 1 from public.barbershops b where b.id = appointments.barbershop_id and b.active = true and b.subscription_status = 'active'));
+
+
+drop policy if exists "availability_manage_own" on public.barber_availability;
+create policy "availability_manage_own" on public.barber_availability
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+drop policy if exists "blocks_manage_own" on public.schedule_blocks;
+create policy "blocks_manage_own" on public.schedule_blocks
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+drop policy if exists "public_read_availability" on public.barber_availability;
+create policy "public_read_availability" on public.barber_availability
+for select to anon
+using (
+  active = true
+  and exists (
+    select 1 from public.barbershops b
+    where b.id = barber_availability.barbershop_id
+    and b.active = true
+    and b.subscription_status = 'active'
+  )
+);
+
+drop policy if exists "public_read_schedule_blocks" on public.schedule_blocks;
+create policy "public_read_schedule_blocks" on public.schedule_blocks
+for select to anon
+using (
+  exists (
+    select 1 from public.barbershops b
+    where b.id = schedule_blocks.barbershop_id
+    and b.active = true
+    and b.subscription_status = 'active'
+  )
+);

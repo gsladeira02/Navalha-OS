@@ -21,3 +21,16 @@ Versão final do sistema para clientes, com visual em azul e vermelho, logo pró
 
 ## Observação
 O site não mostra mensagens administrativas na interface. O acesso ao painel só é liberado para usuários com barbearia ativa no banco.
+
+
+## Aba Horários
+
+A versão inclui a tela `horarios.html`.
+
+Nela, a barbearia cadastra:
+- disponibilidade semanal por barbeiro;
+- intervalo de almoço/pausa;
+- bloqueios pontuais por data;
+- bloqueio para barbeiro específico ou barbearia inteira.
+
+O link público de agendamento usa esses horários e mostra ao cliente apenas os horários realmente disponíveis.

@@ -1,0 +1,46 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Horários | NavalhaOS</title><link rel="stylesheet" href="css/style.css"></head><body><div class="app"><aside class="sidebar"><div class="brand"><img class="brand-logo" src="assets/logo.png" alt="NavalhaOS"><div class="brand-text"><h1>NavalhaOS</h1><p>Gestão para barbearias</p></div></div><nav class="nav"><a data-nav="dashboard" href="dashboard.html"><span class="nav-ico">⌂</span><span class="nav-label">Início</span></a><a data-nav="agenda" href="agenda.html"><span class="nav-ico">🗓</span><span class="nav-label">Agenda</span></a><a data-nav="clientes" href="clientes.html"><span class="nav-ico">👥</span><span class="nav-label">Clientes</span></a><a data-nav="barbeiros" href="barbeiros.html"><span class="nav-ico">🧔</span><span class="nav-label">Equipe</span></a><a data-nav="servicos" href="servicos.html"><span class="nav-ico">✂</span><span class="nav-label">Serviços</span></a><a data-nav="horarios" href="horarios.html"><span class="nav-ico">⏱</span><span class="nav-label">Horários</span></a><a data-nav="caixa" href="caixa.html"><span class="nav-ico">💳</span><span class="nav-label">Caixa</span></a></nav><div class="sidebar-footer"><button id="logoutBtn" class="btn secondary full">Sair</button></div></aside><main class="main"><div class="topbar"><div class="title"><h2 id="pageTitle"></h2><p id="pageSubtitle"></p></div><div class="userbox"><span id="shopName">Barbearia</span><strong id="userEmail"></strong></div></div>
+
+<section class="grid two">
+  <div class="card">
+    <h3>Disponibilidade semanal</h3>
+    <form id="availabilityForm" class="form">
+      <div class="field"><label>Barbeiro</label><select id="barber_id" required></select></div>
+      <div class="field"><label>Dia da semana</label><select id="weekday" required>
+        <option value="0">Domingo</option>
+        <option value="1">Segunda-feira</option>
+        <option value="2">Terça-feira</option>
+        <option value="3">Quarta-feira</option>
+        <option value="4">Quinta-feira</option>
+        <option value="5">Sexta-feira</option>
+        <option value="6">Sábado</option>
+      </select></div>
+      <div class="row"><div class="field"><label>Início</label><input id="start_time" type="time" required></div><div class="field"><label>Fim</label><input id="end_time" type="time" required></div></div>
+      <div class="row"><div class="field"><label>Intervalo início</label><input id="break_start" type="time"></div><div class="field"><label>Intervalo fim</label><input id="break_end" type="time"></div></div>
+      <button class="btn primary full" type="submit">Salvar horário semanal</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Bloqueio pontual</h3>
+    <form id="blockForm" class="form">
+      <div class="field"><label>Barbeiro</label><select id="block_barber_id"></select></div>
+      <div class="field"><label>Data bloqueada</label><input id="block_date" type="date" required></div>
+      <div class="row"><div class="field"><label>Início</label><input id="block_start" type="time"></div><div class="field"><label>Fim</label><input id="block_end" type="time"></div></div>
+      <div class="field"><label>Motivo</label><input id="reason" placeholder="Ex: folga, feriado, compromisso"></div>
+      <button class="btn secondary full" type="submit">Adicionar bloqueio</button>
+    </form>
+  </div>
+</section>
+
+<section class="grid two" style="margin-top:14px">
+  <div class="card">
+    <h3>Horários cadastrados</h3>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Barbeiro</th><th>Dia</th><th>Horário</th><th>Intervalo</th><th>Ações</th></tr></thead><tbody id="availabilityRows"></tbody></table></div>
+  </div>
+  <div class="card">
+    <h3>Bloqueios</h3>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Data</th><th>Barbeiro</th><th>Horário</th><th>Motivo</th><th>Ações</th></tr></thead><tbody id="blockRows"></tbody></table></div>
+  </div>
+</section>
+
+</main></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/config.js"></script><script src="js/supabase-client.js"></script><script src="js/app.js"></script><script src="js/horarios.js"></script></body></html>
