@@ -1,0 +1,10 @@
+project_id = "navalhaos"
+
+[functions.create-recurring-payment]
+verify_jwt = true
+
+[functions.issue-invoice]
+verify_jwt = true
+
+[functions.payment-webhook]
+verify_jwt = false

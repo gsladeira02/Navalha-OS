@@ -407,3 +407,152 @@ from public.units u
 where br.barbershop_id = u.barbershop_id
 and br.unit_id is null
 and u.name = 'Unidade Principal';
+
+
+-- Planos recorrentes, assinaturas de clientes, pagamentos e notas fiscais
+create table if not exists public.subscription_plans (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  name text not null,
+  description text,
+  price numeric(10,2) not null default 0,
+  billing_day integer not null default 10 check (billing_day between 1 and 28),
+  interval text not null default 'monthly',
+  active boolean not null default true,
+  external_provider text,
+  external_plan_id text,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.customer_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  customer_id uuid references public.customers(id) on delete set null,
+  plan_id uuid references public.subscription_plans(id) on delete set null,
+  customer_name text,
+  plan_name text,
+  status text not null default 'active',
+  start_date date not null default current_date,
+  next_billing_date date,
+  checkout_url text,
+  external_provider text,
+  external_subscription_id text,
+  canceled_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.subscription_payments (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  subscription_id uuid references public.customer_subscriptions(id) on delete set null,
+  customer_id uuid references public.customers(id) on delete set null,
+  plan_id uuid references public.subscription_plans(id) on delete set null,
+  customer_name text,
+  plan_name text,
+  amount numeric(10,2) not null default 0,
+  due_date date not null,
+  status text not null default 'pending',
+  checkout_url text,
+  payment_method text,
+  external_provider text,
+  external_payment_id text,
+  paid_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.fiscal_invoices (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  payment_id uuid references public.subscription_payments(id) on delete set null,
+  subscription_id uuid references public.customer_subscriptions(id) on delete set null,
+  customer_id uuid references public.customers(id) on delete set null,
+  customer_name text,
+  amount numeric(10,2) not null default 0,
+  status text not null default 'pending',
+  service_description text,
+  invoice_number text,
+  invoice_url text,
+  external_provider text,
+  external_invoice_id text,
+  error_message text,
+  issued_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table public.subscription_plans enable row level security;
+alter table public.customer_subscriptions enable row level security;
+alter table public.subscription_payments enable row level security;
+alter table public.fiscal_invoices enable row level security;
+
+drop policy if exists "subscription_plans_manage_own" on public.subscription_plans;
+create policy "subscription_plans_manage_own" on public.subscription_plans
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+drop policy if exists "customer_subscriptions_manage_own" on public.customer_subscriptions;
+create policy "customer_subscriptions_manage_own" on public.customer_subscriptions
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+drop policy if exists "subscription_payments_manage_own" on public.subscription_payments;
+create policy "subscription_payments_manage_own" on public.subscription_payments
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+drop policy if exists "fiscal_invoices_manage_own" on public.fiscal_invoices;
+create policy "fiscal_invoices_manage_own" on public.fiscal_invoices
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+grant select, insert, update, delete on public.subscription_plans to authenticated;
+grant select, insert, update, delete on public.customer_subscriptions to authenticated;
+grant select, insert, update, delete on public.subscription_payments to authenticated;
+grant select, insert, update, delete on public.fiscal_invoices to authenticated;
+
+
+-- Integrações de cobrança e emissão fiscal por barbearia
+create table if not exists public.billing_integrations (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade unique,
+  payment_provider text not null default 'asaas',
+  payment_api_key text,
+  fiscal_provider text not null default 'nfeio',
+  fiscal_api_key text,
+  fiscal_company_id text,
+  active boolean not null default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table public.billing_integrations enable row level security;
+
+drop policy if exists "billing_integrations_manage_own" on public.billing_integrations;
+create policy "billing_integrations_manage_own" on public.billing_integrations
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+grant select, insert, update, delete on public.billing_integrations to authenticated;
+
+alter table public.customers
+add column if not exists email text,
+add column if not exists cpf_cnpj text,
+add column if not exists external_payment_customer_id text;
+
+alter table public.customer_subscriptions
+add column if not exists external_provider text,
+add column if not exists external_subscription_id text;
+
+alter table public.subscription_payments
+add column if not exists external_provider text,
+add column if not exists external_payment_id text,
+add column if not exists external_subscription_id text;
+
+alter table public.fiscal_invoices
+add column if not exists external_provider text,
+add column if not exists external_invoice_id text,
+add column if not exists error_message text;

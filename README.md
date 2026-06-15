@@ -129,3 +129,34 @@ Na aba **Equipe**, agora é possível:
 - filtrar barbeiros por unidade.
 
 No agendamento público, o cliente escolhe primeiro a **unidade**, depois o serviço, barbeiro, data e horário.
+
+
+## Módulo de assinaturas recorrentes e notas fiscais
+
+Foi adicionada a aba **Assinaturas**, onde a barbearia pode:
+
+- cadastrar planos recorrentes para seus próprios clientes;
+- criar assinaturas vinculadas aos clientes cadastrados;
+- registrar links de cobrança recorrente gerados pelo Asaas/Mercado Pago;
+- gerar cobranças recorrentes no painel;
+- marcar pagamentos como pagos;
+- criar registros de NFS-e pendentes para os pagamentos;
+- marcar notas como emitidas e salvar número/link da nota.
+
+Importante: por segurança, as chaves de API do Asaas, Mercado Pago, NFE.io, PlugNotas ou Focus NFe não devem ficar no frontend. A emissão real de cobranças e notas deve ser feita por backend seguro, como Supabase Edge Functions. Este pacote deixa a estrutura do sistema pronta para receber essa automação.
+
+
+## Backend seguro para cobranças e notas
+
+Esta versão inclui Supabase Edge Functions em `supabase/functions` para:
+- criar cobrança/assinatura recorrente via Asaas;
+- emitir NFS-e via NFE.io;
+- receber webhook de pagamento.
+
+Veja as instruções em:
+
+```txt
+supabase/README_BACKEND.md
+```
+
+Importante: as chaves de API devem ser configuradas como secrets no Supabase e/ou cadastradas no módulo de integrações da barbearia. Para produção, revise criptografia/armazenamento seguro dos tokens por barbearia.
