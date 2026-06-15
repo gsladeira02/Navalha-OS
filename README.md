@@ -63,3 +63,20 @@ A versão inclui:
 
 - `privacidade.html`
 - `termos.html`
+
+
+## Antecedência mínima para agendamento
+
+Na aba **Horários**, a barbearia pode definir quanto tempo de antecedência o cliente precisa respeitar para marcar pelo link público.
+
+Opções disponíveis:
+- sem antecedência mínima;
+- 30 minutos;
+- 1 hora;
+- 2 horas;
+- 3 horas;
+- 4 horas;
+- 12 horas;
+- 1 dia.
+
+O link público remove automaticamente os horários que estiverem antes do limite configurado.

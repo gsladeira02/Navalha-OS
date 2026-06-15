@@ -6,32 +6,38 @@
   <title>Entrar | NavalhaOS</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="login-page">
-  <section class="login-shell">
-    <div class="login-panel hero-panel">
-      <img class="hero-logo" src="assets/logo.png" alt="NavalhaOS">
+<body class="login-page login-page-clean">
+  <section class="login-clean-shell">
+    <div class="login-clean-card">
+      <img class="login-clean-logo" src="assets/logo.png" alt="NavalhaOS">
       <h1>NavalhaOS</h1>
-      <p>Um sistema pensado para funcionar muito bem no celular, com agenda, clientes e caixa em um só lugar.</p>
-      <ul class="hero-list">
-        <li>Agenda rápida para sua barbearia</li>
-        <li>Controle financeiro com visual profissional</li>
-        <li>Gestão simples para o dia a dia</li>
-      </ul>
-    </div>
-    <div class="login-panel login-card">
-      <img class="login-logo" src="assets/logo.png" alt="NavalhaOS">
-      <h2>Entrar no sistema</h2>
-      <form id="loginForm" class="form">
-        <div class="field"><label>E-mail</label><input id="email" type="email" required placeholder="cliente@email.com"></div>
-        <div class="field"><label>Senha</label><input id="password" type="password" required placeholder="••••••••"></div>
+      <p class="login-clean-subtitle">Acesse sua barbearia</p>
+      <form id="loginForm" class="form login-clean-form">
+        <div class="field">
+          <label>E-mail</label>
+          <input id="email" type="email" required placeholder="cliente@barbearia.com">
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <div class="input-with-action">
+            <input id="password" type="password" required placeholder="Digite sua senha">
+            <button type="button" class="toggle-pass" id="togglePassword">Ver</button>
+          </div>
+        </div>
         <button class="btn primary full" type="submit">Entrar</button>
       </form>
-      <p class="subtle center">Acesso exclusivo para clientes ativos.</p>
+      <div class="login-clean-meta"><span>Acesso exclusivo para clientes ativos</span></div>
+      <div class="legal-links">
+        <a href="privacidade.html">Privacidade</a>
+        <span>•</span>
+        <a href="termos.html">Termos</a>
+      </div>
     </div>
-  </section><div class="legal-links"><a href="privacidade.html">Privacidade</a><span>•</span><a href="termos.html">Termos</a></div>
+  </section>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
-  <script src="js/supabase-client.js"></script><script src="js/ui.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/login.js"></script>
 </body>
 </html>

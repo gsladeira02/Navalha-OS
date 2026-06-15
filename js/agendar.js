@@ -24,6 +24,15 @@ function weekdayFromDate(dateValue){
   return new Date(dateValue + 'T00:00:00').getDay();
 }
 
+function isBeforeMinimumAdvance(dateValue, timeValue){
+  const minutes = Number(shop?.booking_min_advance_minutes || 0);
+  if (!minutes) return false;
+  const minDate = new Date(Date.now() + minutes * 60000);
+  const slotDate = new Date(`${dateValue}T${timeValue}:00`);
+  return slotDate < minDate;
+}
+
+
 async function initBooking(){
   if (!slug) {
     document.getElementById('bookingCard').innerHTML = '<div class="success-panel"><h2>Link inválido</h2><p>Confira o link recebido.</p></div>';
@@ -32,7 +41,7 @@ async function initBooking(){
 
   const { data: shopData, error: shopError } = await db
     .from('barbershops')
-    .select('id,name,active,subscription_status,slug')
+    .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
     .or(`slug.eq.${slug},id.eq.${slug}`)
     .eq('active', true)
     .eq('subscription_status', 'active')
@@ -143,6 +152,7 @@ async function renderSlots(){
       const slotStart = minutesToTime(m);
       const slotEnd = minutesToTime(m + duration);
 
+      if (isBeforeMinimumAdvance(date, slotStart)) continue;
       if (av.break_start && av.break_end && overlaps(slotStart, slotEnd, av.break_start, av.break_end)) continue;
       if (takenRanges.some(r => overlaps(slotStart, slotEnd, r.start, r.end))) continue;
       if (blockRanges.some(r => overlaps(slotStart, slotEnd, r.start, r.end))) continue;
@@ -192,6 +202,13 @@ document.getElementById('bookingForm').addEventListener('submit', async (e) => {
     name: customerName,
     phone: customerPhone
   });
+
+  
+  if (isBeforeMinimumAdvance(appointmentDate, selectedSlot)) {
+    showToast('Esse horário está muito próximo. Escolha um horário com mais antecedência.', 'error');
+    await renderSlots();
+    return;
+  }
 
   const booked = await getBookedSlots(barber.id, appointmentDate);
   const duration = Number(service.duration_minutes || 30);

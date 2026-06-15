@@ -1,4 +1,18 @@
 
+async function loadAdvanceSetting(){
+  const select = document.getElementById('booking_min_advance_minutes');
+  if (!select) return;
+  const { data, error } = await db
+    .from('barbershops')
+    .select('booking_min_advance_minutes')
+    .eq('id', activeShop.id)
+    .maybeSingle();
+  if (!error && data && data.booking_min_advance_minutes != null) {
+    select.value = String(data.booking_min_advance_minutes);
+  }
+}
+
+
 let barbers = [];
 const weekdays = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
@@ -68,8 +82,28 @@ window.removeBlock = async (id) => {
 (async () => {
   await requireAuth('Horários', 'Configure disponibilidade semanal e bloqueios pontuais');
   await loadBarbers();
+  await loadAdvanceSetting();
   await loadAvailability();
   await loadBlocks();
+
+  
+  const advanceForm = document.getElementById('advanceForm');
+  if (advanceForm) {
+    advanceForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const minutes = Number(document.getElementById('booking_min_advance_minutes').value || 0);
+      const { error } = await db
+        .from('barbershops')
+        .update({ booking_min_advance_minutes: minutes })
+        .eq('id', activeShop.id);
+      if (error) {
+        showToast('Não foi possível salvar a antecedência.', 'error');
+        return;
+      }
+      activeShop.booking_min_advance_minutes = minutes;
+      showToast('Antecedência mínima salva.', 'success');
+    });
+  }
 
   document.getElementById('availabilityForm').addEventListener('submit', async (e) => {
     e.preventDefault();

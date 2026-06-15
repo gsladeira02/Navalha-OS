@@ -1,5 +1,26 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Horários | NavalhaOS</title><link rel="stylesheet" href="css/style.css"></head><body><div class="app"><aside class="sidebar"><div class="brand"><img class="brand-logo" src="assets/logo.png" alt="NavalhaOS"><div class="brand-text"><h1>NavalhaOS</h1><p>Gestão para barbearias</p></div></div><div class="sidebar-footer"><button id="logoutBtn" class="btn secondary full">Sair</button></div></aside><main class="main"><div class="topbar"><div class="title"><h2 id="pageTitle"></h2><p id="pageSubtitle"></p></div><div class="userbox"><span id="shopName">Barbearia</span><strong id="userEmail"></strong></div></div>
 
+<section class="card">
+  <h3>Antecedência para agendamento</h3>
+  <p class="muted-copy">Defina com quanto tempo de antecedência o cliente pode marcar pelo link público. Exemplo: se escolher 60 minutos, ninguém consegue marcar para menos de 1 hora a partir de agora.</p>
+  <form id="advanceForm" class="form" style="margin-top:14px">
+    <div class="field">
+      <label>Antecedência mínima</label>
+      <select id="booking_min_advance_minutes" required>
+        <option value="0">Sem antecedência mínima</option>
+        <option value="30">30 minutos</option>
+        <option value="60">1 hora</option>
+        <option value="120">2 horas</option>
+        <option value="180">3 horas</option>
+        <option value="240">4 horas</option>
+        <option value="720">12 horas</option>
+        <option value="1440">1 dia</option>
+      </select>
+    </div>
+    <button class="btn primary full" type="submit">Salvar antecedência</button>
+  </form>
+</section>
+
 <section class="grid two">
   <div class="card">
     <h3>Disponibilidade semanal</h3>

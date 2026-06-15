@@ -9,6 +9,7 @@ create table if not exists public.barbershops (
   subscription_status text not null default 'inactive',
   active boolean not null default false,
   slug text unique,
+  booking_min_advance_minutes integer not null default 0,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   constraint barbershops_owner_id_unique unique (owner_id)
@@ -281,3 +282,11 @@ revoke select on public.appointments from anon;
 
 drop policy if exists "public_select_customers_by_phone" on public.customers;
 drop policy if exists "public_select_appointments_slots" on public.appointments;
+
+
+-- Antecedência mínima para agendamento público
+alter table public.barbershops
+add column if not exists booking_min_advance_minutes integer not null default 0;
+
+comment on column public.barbershops.booking_min_advance_minutes is
+'Tempo mínimo, em minutos, que o cliente precisa respeitar antes de marcar pelo link público.';
