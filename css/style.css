@@ -214,3 +214,14 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
   .card-head{flex-direction:row;justify-content:space-between;align-items:center}
   .compact-input{max-width:180px}
 }
+
+
+/* Simplified login page */
+.login-shell-simple{max-width:460px!important;grid-template-columns:1fr!important}
+.login-card-simple{padding:24px 20px!important}
+.login-card-simple .login-logo{margin:0 auto 12px!important}
+.login-card-simple .login-card-head{text-align:center!important}
+@media (min-width:760px){
+  .login-shell-simple{max-width:480px!important}
+  .login-card-simple{padding:30px!important}
+}
