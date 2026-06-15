@@ -46,14 +46,15 @@
 
 function setupBookingShare(){
   const bookingLink = `${location.origin}/agendar.html?slug=${encodeURIComponent(activeShop.slug || activeShop.id)}`;
+  const shareText = `Agende seu horário na ${activeShop.name}: ${bookingLink}`;
   const bookingInput = document.getElementById('bookingLink');
   if (bookingInput) bookingInput.value = bookingLink;
   const copyBtn = document.getElementById('copyBookingLink');
   if (copyBtn) {
     copyBtn.onclick = async () => {
       try {
-        await navigator.clipboard.writeText(bookingLink);
-        showToast('Link copiado.', 'success');
+        await navigator.clipboard.writeText(shareText);
+        showToast('Mensagem com o nome da barbearia copiada.', 'success');
       } catch {
         if (bookingInput) {
           bookingInput.focus();
@@ -69,12 +70,14 @@ function setupBookingShare(){
     shareBtn.onclick = async () => {
       try {
         if (navigator.share) {
-          await navigator.share({ title: `Agenda ${activeShop.name}`, text: `Agende seu horário na ${activeShop.name}`, url: bookingLink });
+          await navigator.share({ title: `Agenda • ${activeShop.name}`, text: `Agende seu horário na ${activeShop.name}`, url: bookingLink });
         } else {
-          await navigator.clipboard.writeText(bookingLink);
-          showToast('Link copiado para compartilhar.', 'success');
+          await navigator.clipboard.writeText(shareText);
+          showToast('Mensagem copiada para compartilhar.', 'success');
         }
       } catch (err) {}
     };
   }
+  const note = document.getElementById('shareBarbershopName');
+  if (note) note.textContent = activeShop.name;
 }

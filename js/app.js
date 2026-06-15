@@ -9,12 +9,18 @@ window.escapeHtml = (str = '') => String(str)
   .replace(/'/g, '&#39;');
 window.badge = (status) => `<span class="badge ${status}">${status}</span>`;
 window.activeShop = null;
+window.currentSessionUser = null;
+window.needsPasswordChange = (user) => !user?.user_metadata || user.user_metadata.must_change_password !== false;
 
 window.requireAuth = async function(pageTitle, subtitle){
   const { data: { session } } = await db.auth.getSession();
   if (!session) {
     location.href = 'login.html';
     throw new Error('Sem sessão');
+  }
+  if (window.needsPasswordChange(session.user) && !location.pathname.endsWith('change-password.html')) {
+    location.href = 'change-password.html';
+    throw new Error('Troca de senha pendente');
   }
   const { data: shop, error } = await db
     .from('barbershops')
@@ -27,10 +33,15 @@ window.requireAuth = async function(pageTitle, subtitle){
     throw new Error('Acesso bloqueado');
   }
   window.activeShop = shop;
-  document.getElementById('userEmail').textContent = session.user.email;
-  document.getElementById('shopName').textContent = shop.name;
-  document.getElementById('pageTitle').textContent = pageTitle;
-  document.getElementById('pageSubtitle').textContent = subtitle || '';
+  window.currentSessionUser = session.user;
+  const emailEl = document.getElementById('userEmail');
+  const shopNameEl = document.getElementById('shopName');
+  const titleEl = document.getElementById('pageTitle');
+  const subtitleEl = document.getElementById('pageSubtitle');
+  if (emailEl) emailEl.textContent = session.user.email;
+  if (shopNameEl) shopNameEl.textContent = shop.name;
+  if (titleEl) titleEl.textContent = pageTitle;
+  if (subtitleEl) subtitleEl.textContent = subtitle || '';
   const current = location.pathname.split('/').pop().replace('.html','');
   document.querySelectorAll('[data-nav]').forEach(a => {
     if (a.dataset.nav === current) a.classList.add('active');

@@ -32,7 +32,8 @@ loginForm.addEventListener('submit', async (e) => {
       return;
     }
     showToast('Login realizado com sucesso.', 'success');
-    setTimeout(() => window.location.href = 'dashboard.html', 450);
+    const mustChange = !data.user?.user_metadata || data.user.user_metadata.must_change_password !== false;
+    setTimeout(() => window.location.href = mustChange ? 'change-password.html' : 'dashboard.html', 450);
   } catch (err) {
     showToast('E-mail ou senha inválidos.', 'error');
   } finally {
