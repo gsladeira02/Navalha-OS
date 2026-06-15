@@ -111,3 +111,9 @@ A regra do dia específico substitui a disponibilidade semanal somente naquela d
 ## Correção da página pública de agendamento
 
 A página `agendar.html` foi ajustada para usar caminhos absolutos (`/css`, `/js`, `/assets`) e `base href="/"`, garantindo que o layout carregue corretamente quando o cliente acessa URLs no formato `/agenda/nomedabarbearia`.
+
+
+## Ajustes visuais e de link
+
+- As listas suspensas agora mantêm o mesmo fundo escuro do restante do sistema.
+- O agendamento público foi ajustado para evitar erro ao abrir links amigáveis como `/agenda/barbearia-teste`, inclusive quando o valor não é um UUID.

@@ -292,3 +292,32 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
   .booking-header p{font-size:14px}
   .slot-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* Select fields visual fix */
+.field select,
+.compact-input[type="date"],
+.compact-input,
+select{
+  -webkit-appearance:none;
+  appearance:none;
+  background-color:#0a1728;
+  color:var(--text);
+  border:1px solid rgba(92,132,188,.24);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23dbe6f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  background-size:16px;
+  padding-right:44px;
+}
+.field select option,
+select option{
+  background:#0a1728;
+  color:#f4f8ff;
+}
+.field select:focus,
+select:focus{
+  outline:none;
+  border-color:rgba(31,95,255,.55);
+  box-shadow:0 0 0 4px rgba(31,95,255,.12);
+}

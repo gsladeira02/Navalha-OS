@@ -25,6 +25,11 @@ function weekdayFromDate(dateValue){
   return new Date(dateValue + 'T00:00:00').getDay();
 }
 
+
+function isUUIDValue(value){
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
 function slugifyPublicValue(value){
   return String(value || '')
     .normalize('NFD')
@@ -53,32 +58,50 @@ async function initBooking(){
   let shopData = null;
   let shopError = null;
 
-  const directLookup = await db
-    .from('barbershops')
-    .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
-    .or(`slug.eq.${slug},id.eq.${slug}`)
-    .eq('active', true)
-    .eq('subscription_status', 'active')
-    .maybeSingle();
+  let directLookup;
+  if (isUUIDValue(slug)) {
+    directLookup = await db
+      .from('barbershops')
+      .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
+      .or(`slug.eq.${slug},id.eq.${slug}`)
+      .eq('active', true)
+      .eq('subscription_status', 'active')
+      .maybeSingle();
+  } else {
+    directLookup = await db
+      .from('barbershops')
+      .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
+      .eq('slug', slug)
+      .eq('active', true)
+      .eq('subscription_status', 'active')
+      .maybeSingle();
+  }
 
   shopData = directLookup.data;
   shopError = directLookup.error;
 
-  if (!shopData && !shopError) {
-    const fallbackLookup = await db
-      .from('barbershops')
-      .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
-      .eq('active', true)
-      .eq('subscription_status', 'active');
+  const fallbackLookup = await db
+    .from('barbershops')
+    .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
+    .eq('active', true)
+    .eq('subscription_status', 'active');
 
-    if (!fallbackLookup.error) {
-      shopData = (fallbackLookup.data || []).find(item =>
-        slugifyPublicValue(item.slug || item.name || item.id) === slugifyPublicValue(slug)
+  if (!shopData && !fallbackLookup.error) {
+    const normalizedSlug = slugifyPublicValue(slug).replace(/^barbearia-/, '');
+    shopData = (fallbackLookup.data || []).find(item => {
+      const itemSlug = slugifyPublicValue(item.slug || '');
+      const itemName = slugifyPublicValue(item.name || '');
+      const itemNameNoPrefix = itemName.replace(/^barbearia-/, '');
+      return (
+        itemSlug === slugifyPublicValue(slug) ||
+        itemName === slugifyPublicValue(slug) ||
+        itemNameNoPrefix === normalizedSlug ||
+        itemSlug === normalizedSlug
       );
-    }
+    });
   }
 
-  if (shopError || !shopData) {
+  if ((shopError && !shopData) || !shopData) {
     document.getElementById('bookingCard').innerHTML = '<div class="success-panel"><h2>Agenda indisponível</h2><p>Confira o link recebido ou fale com a barbearia.</p></div>';
     return;
   }
