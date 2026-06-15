@@ -556,3 +556,6 @@ alter table public.fiscal_invoices
 add column if not exists external_provider text,
 add column if not exists external_invoice_id text,
 add column if not exists error_message text;
+
+grant select, insert, update, delete on public.customers to authenticated;
+grant select, insert, update, delete on public.customers to service_role;

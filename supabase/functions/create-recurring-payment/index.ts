@@ -6,6 +6,10 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ASAAS_BASE_URL = Deno.env.get("ASAAS_BASE_URL") || "https://api.asaas.com/v3";
 
+function onlyDigits(value: unknown) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -69,6 +73,11 @@ serve(async (req) => {
     ]);
 
     if (!integration?.payment_api_key) throw new Error("Configure a chave do gateway de pagamento.");
+
+    if (!onlyDigits(customer?.cpf_cnpj)) {
+      throw new Error("Para criar esta cobrança é necessário preencher o CPF ou CNPJ do cliente no cadastro de clientes.");
+    }
+
     if (integration.payment_provider !== "asaas") {
       throw new Error("Esta função está pronta para Asaas. Mercado Pago fica como próximo conector.");
     }
@@ -85,7 +94,7 @@ serve(async (req) => {
           name: customer.name,
           email: customer.email || undefined,
           mobilePhone: customer.phone || undefined,
-          cpfCnpj: customer.cpf_cnpj || undefined,
+          cpfCnpj: onlyDigits(customer.cpf_cnpj) || undefined,
         }),
       });
       const customerJson = await customerRes.json();

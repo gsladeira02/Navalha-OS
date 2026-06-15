@@ -189,3 +189,13 @@ CORRIGIR_ASAAS_PRODUCAO_WINDOWS.bat
 ```
 
 Ele ajusta a secret `ASAAS_BASE_URL` e redeploya a função `create-recurring-payment`.
+
+
+## Clientes com CPF/CNPJ
+
+A tela de clientes agora possui:
+- e-mail;
+- CPF/CNPJ obrigatório;
+- botão de editar cliente.
+
+O Asaas exige CPF/CNPJ para criar cobrança recorrente. Depois de atualizar o site, edite o cliente usado na assinatura e preencha o CPF/CNPJ antes de clicar em **Gerar cobrança**.
