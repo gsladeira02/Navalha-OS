@@ -386,3 +386,40 @@ Funções:
 - `process-system-subscriptions`: gera cobranças de renovação e bloqueia contas vencidas após a tolerância.
 
 Para automação real de renovação, chame `process-system-subscriptions` diariamente por cron.
+
+
+## Erro barbershops_plan_check
+
+Se aparecer:
+
+`new row for relation "barbershops" violates check constraint "barbershops_plan_check"`
+
+rode o arquivo `SQL_CORRIGIR_PLAN_CHECK.sql` no Supabase SQL Editor.
+
+Esse erro vem de uma constraint antiga no campo `barbershops.plan`. A assinatura atual fica controlada pela tabela `system_subscriptions`, então essa constraint não deve bloquear novos cadastros.
+
+
+## Erro barbershops_subscription_status_check
+
+Se aparecer:
+
+`new row for relation "barbershops" violates check constraint "barbershops_subscription_status_check"`
+
+rode o arquivo `SQL_CORRIGIR_SUBSCRIPTION_STATUS_CHECK.sql` no Supabase SQL Editor.
+
+Esse erro vem de uma constraint antiga no campo `barbershops.subscription_status`. A assinatura atual usa status como `pending`, `active`, `renewal_pending`, `expired` e outros, então essa constraint antiga não deve bloquear novos cadastros.
+
+
+## Troca de plano antes do pagamento
+
+Se o cliente escolher o plano errado e ainda não tiver pago, ele pode preencher novamente o formulário com o mesmo e-mail e selecionar outro plano.
+
+O sistema:
+- gera um novo link imediatamente;
+- substitui o link anterior;
+- mantém apenas o `order_nsu` mais recente como válido para ativação automática;
+- se um link antigo for pago depois, o pagamento é registrado em `system_payment_events` para conferência manual e não ativa o acesso automaticamente.
+
+## Indução ao plano anual
+
+A página inicial destaca o plano anual como "Mais vantajoso", seleciona o anual por padrão e mostra a economia anual em relação ao mensal.

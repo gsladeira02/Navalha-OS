@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       result.className = 'site-form-result success';
       result.innerHTML = paymentUrl
-        ? `Assinatura criada. <a href="${paymentUrl}" target="_blank" rel="noopener">Clique aqui para pagar</a>. Após o pagamento, seu acesso será liberado automaticamente.`
+        ? `${data?.replaced ? 'Novo link gerado. O link anterior foi substituído.' : 'Assinatura criada.'} <a href="${paymentUrl}" target="_blank" rel="noopener">Clique aqui para pagar</a>. Após o pagamento, seu acesso será liberado automaticamente.`
         : 'Assinatura criada. Aguarde a confirmação do pagamento para liberação do acesso.';
 
       if (paymentUrl) {

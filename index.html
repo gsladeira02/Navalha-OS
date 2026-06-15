@@ -62,30 +62,25 @@
       <div class="site-subscribe-info">
         <span class="site-kicker">Assinatura do sistema</span>
         <h2>Escolha seu plano</h2>
-        <p>Seu acesso fica ativo pelo período contratado. Após o vencimento, o sistema mantém 3 dias de tolerância com aviso de renovação. Depois disso, a conta é inativada até o próximo pagamento, sem apagar os dados.</p>
+        <p>Seu acesso fica ativo pelo período contratado. O plano anual tem o menor custo mensal e é o mais vantajoso para quem quer manter a barbearia organizada o ano todo. Após o vencimento, o sistema mantém 3 dias de tolerância com aviso de renovação; depois disso, a conta é inativada até o próximo pagamento, sem apagar os dados.</p>
 
         <div class="site-plans-preview">
+          <div class="featured"><strong>Anual</strong><span>12x de R$ 14,90</span><small>Melhor custo: economize R$ 420,00 no ano</small></div>
           <div><strong>Mensal</strong><span>R$ 49,90</span></div>
           <div><strong>Trimestral</strong><span>3x de R$ 44,90</span></div>
           <div><strong>Semestral</strong><span>6x de R$ 39,90</span></div>
-          <div><strong>Anual</strong><span>12x de R$ 14,90</span></div>
         </div>
       </div>
 
       <form id="systemSubscriptionForm" class="site-subscribe-form form">
         <h3>Plano</h3>
         <div class="plan-choice-grid" id="planChoiceGrid">
-          <label class="plan-choice active">
-            <input type="radio" name="planCode" value="monthly" checked>
-            <span>Mensal</span>
-            <strong>R$ 49,90</strong>
-            <small>Cobrança a cada 30 dias</small>
-          </label>
-          <label class="plan-choice">
-            <input type="radio" name="planCode" value="quarterly">
-            <span>Trimestral</span>
-            <strong>3x de R$ 44,90</strong>
-            <small>Cobrança a cada 3 meses</small>
+          <label class="plan-choice annual-choice active">
+            <input type="radio" name="planCode" value="annual" checked>
+            <b class="best-badge">Mais vantajoso</b>
+            <span>Anual</span>
+            <strong>12x de R$ 14,90</strong>
+            <small>Economize R$ 420,00 no ano em relação ao mensal</small>
           </label>
           <label class="plan-choice">
             <input type="radio" name="planCode" value="semiannual">
@@ -94,12 +89,20 @@
             <small>Cobrança a cada 6 meses</small>
           </label>
           <label class="plan-choice">
-            <input type="radio" name="planCode" value="annual">
-            <span>Anual</span>
-            <strong>12x de R$ 14,90</strong>
-            <small>Cobrança a cada 12 meses</small>
+            <input type="radio" name="planCode" value="quarterly">
+            <span>Trimestral</span>
+            <strong>3x de R$ 44,90</strong>
+            <small>Cobrança a cada 3 meses</small>
+          </label>
+          <label class="plan-choice">
+            <input type="radio" name="planCode" value="monthly">
+            <span>Mensal</span>
+            <strong>R$ 49,90</strong>
+            <small>Cobrança a cada 30 dias</small>
           </label>
         </div>
+
+        <p class="plan-change-note">Escolheu o plano errado e ainda não pagou? Basta selecionar outro plano e gerar um novo link. O link anterior será substituído.</p>
 
         <h3>Dados do administrador</h3>
         <div class="field">

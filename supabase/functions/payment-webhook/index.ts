@@ -46,6 +46,20 @@ function getProvider(payload: any) {
   return "asaas";
 }
 
+async function logPaymentEvent(supabase: any, payload: any, status: string, reason: string) {
+  try {
+    await supabase.from("system_payment_events").insert({
+      external_provider: getProvider(payload),
+      order_nsu: payload.order_nsu || payload.orderNsu || null,
+      transaction_nsu: payload.transaction_nsu || payload.transactionNsu || null,
+      external_invoice_slug: payload.invoice_slug || payload.slug || null,
+      status,
+      reason,
+      payload,
+    });
+  } catch (_) {}
+}
+
 async function activateSystemSubscriptions(supabase: any, subs: any[], payload: any) {
   const now = new Date();
   const nowIso = now.toISOString();
@@ -112,6 +126,7 @@ serve(async (req) => {
       const invoiceSlug = payload.invoice_slug || payload.slug || null;
 
       if (!orderNsu && !transactionNsu && !invoiceSlug) {
+        await logPaymentEvent(supabase, payload, "ignored", "Webhook recebido sem identificador.");
         return jsonResponse({ ok: true, message: "Webhook recebido sem identificador." });
       }
 
@@ -128,7 +143,19 @@ serve(async (req) => {
 
       if (error) throw error;
 
+      if (!found || !found.length) {
+        await logPaymentEvent(supabase, payload, "manual_review", "Pagamento recebido de link substituído ou não encontrado. Não ativou acesso automaticamente.");
+        return jsonResponse({
+          ok: true,
+          provider: "infinitepay",
+          systemSubscriptionsUpdated: 0,
+          manualReview: true,
+          message: "Pagamento recebido, mas o link não é o link ativo atual.",
+        });
+      }
+
       await activateSystemSubscriptions(supabase, found || [], payload);
+      await logPaymentEvent(supabase, payload, "processed", "Pagamento processado e acesso ativado.");
 
       return jsonResponse({
         ok: true,

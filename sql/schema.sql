@@ -831,3 +831,50 @@ grant select on public.system_subscriptions to authenticated;
 grant select, insert, update, delete on public.system_subscriptions to service_role;
 grant select, insert, update on public.barbershops to service_role;
 grant usage, select on all sequences in schema public to service_role;
+
+
+-- Correção: plano interno da barbearia
+-- Algumas bases antigas criaram a constraint barbershops_plan_check com valores limitados.
+-- A assinatura real agora fica em system_subscriptions, então o campo barbershops.plan não deve bloquear novos cadastros.
+alter table public.barbershops
+drop constraint if exists barbershops_plan_check;
+
+alter table public.barbershops
+alter column plan set default 'complete';
+
+-- Correção: status da assinatura da barbearia
+-- Algumas bases antigas criaram a constraint barbershops_subscription_status_check
+-- sem aceitar status novos como pending, renewal_pending, overdue e expired.
+alter table public.barbershops
+drop constraint if exists barbershops_subscription_status_check;
+
+alter table public.barbershops
+alter column subscription_status set default 'inactive';
+
+
+-- Troca de plano antes do pagamento e destaque do plano anual
+alter table public.system_subscriptions
+add column if not exists replaced_order_nsus jsonb not null default '[]'::jsonb,
+add column if not exists link_replaced_at timestamptz,
+add column if not exists pending_plan_code text,
+add column if not exists pending_plan_label text,
+add column if not exists pending_plan_display_price text,
+add column if not exists pending_plan_starts_at date,
+add column if not exists plan_change_requested_at timestamptz;
+
+create table if not exists public.system_payment_events (
+  id uuid primary key default gen_random_uuid(),
+  external_provider text,
+  order_nsu text,
+  transaction_nsu text,
+  external_invoice_slug text,
+  status text not null default 'received',
+  reason text,
+  payload jsonb,
+  created_at timestamptz default now()
+);
+
+alter table public.system_payment_events enable row level security;
+
+grant select, insert, update, delete on public.system_payment_events to service_role;
+grant select on public.system_payment_events to authenticated;

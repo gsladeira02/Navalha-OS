@@ -118,9 +118,9 @@ function findCheckoutUrl(payload: any) {
   return payload?.url || payload?.link || payload?.checkout_url || payload?.checkoutUrl || payload?.payment_url || payload?.paymentUrl || payload?.data?.url || payload?.data?.link || null;
 }
 
-async function createInfinitePayCheckout(req: Request, plan: any, orderNsu: string, customer: any) {
+async function createCheckout(req: Request, plan: any, orderNsu: string, customer: any) {
   const origin = getRequestOrigin(req);
-  const redirectUrl = origin ? `${origin}/login.html?pagamento=infinitepay&order_nsu=${encodeURIComponent(orderNsu)}` : undefined;
+  const redirectUrl = origin ? `${origin}/login.html?pagamento=ok&order_nsu=${encodeURIComponent(orderNsu)}` : undefined;
   const webhookUrl = `${SUPABASE_URL}/functions/v1/payment-webhook${WEBHOOK_SECRET ? `?secret=${encodeURIComponent(WEBHOOK_SECRET)}` : ""}`;
 
   const checkoutPayload: Record<string, unknown> = {
@@ -159,7 +159,35 @@ async function createInfinitePayCheckout(req: Request, plan: any, orderNsu: stri
     throw new Error(`O checkout respondeu sem link de pagamento. Resposta: ${JSON.stringify(linkJson)}`);
   }
 
-  return { checkoutUrl, response: linkJson, invoiceSlug: linkJson?.slug || linkJson?.invoice_slug || linkJson?.data?.slug || null };
+  return {
+    checkoutUrl,
+    response: linkJson,
+    invoiceSlug: linkJson?.slug || linkJson?.invoice_slug || linkJson?.data?.slug || null,
+  };
+}
+
+function getReplacedOrderList(existing: any) {
+  const list = Array.isArray(existing?.replaced_order_nsus) ? existing.replaced_order_nsus : [];
+  const current = existing?.order_nsu ? String(existing.order_nsu) : "";
+  return current && !list.includes(current) ? [...list, current] : list;
+}
+
+async function updateUserPasswordAndMetadata(supabase: any, userId: string, body: any) {
+  const updates: Record<string, unknown> = {
+    user_metadata: {
+      must_change_password: false,
+      setup_completed: true,
+      admin_name: body.adminName,
+      admin_cpf: body.adminCpf,
+      admin_phone: body.adminPhone,
+    },
+  };
+
+  if (String(body.adminPassword || "").length >= 6) {
+    updates.password = body.adminPassword;
+  }
+
+  await supabase.auth.admin.updateUserById(userId, updates);
 }
 
 serve(async (req) => {
@@ -167,6 +195,7 @@ serve(async (req) => {
 
   let userIdToDelete: string | null = null;
   let barbershopIdToDelete: string | null = null;
+  let systemSubscriptionIdToDelete: string | null = null;
 
   try {
     if (!INFINITEPAY_HANDLE) {
@@ -174,7 +203,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const plan = PLANS[String(body?.planCode || "monthly")] || PLANS.monthly;
+    const plan = PLANS[String(body?.planCode || "annual")] || PLANS.annual;
     const adminName = String(body?.adminName || "").trim();
     const adminEmail = String(body?.adminEmail || "").trim().toLowerCase();
     const adminPhone = onlyDigits(body?.adminPhone);
@@ -194,117 +223,174 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: existingSystemSub } = await supabase
+    const { data: existing } = await supabase
       .from("system_subscriptions")
-      .select("id,status,checkout_url")
+      .select("*")
       .eq("admin_email", adminEmail)
-      .in("status", ["pending", "active", "paid", "renewal_pending"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (existingSystemSub) {
-      throw new Error("Já existe uma assinatura criada para este e-mail. Use outro e-mail ou acesse o link de pagamento já gerado.");
-    }
-
-    const { data: createdUser, error: createUserError } = await supabase.auth.admin.createUser({
-      email: adminEmail,
-      password: adminPassword,
-      email_confirm: true,
-      user_metadata: {
-        must_change_password: false,
-        setup_completed: true,
-        admin_name: adminName,
-        admin_cpf: adminCpf,
-        admin_phone: adminPhone,
-      },
-    });
-
-    if (createUserError || !createdUser?.user) {
-      throw new Error(createUserError?.message || "Não foi possível criar o usuário.");
-    }
-
-    const user = createdUser.user;
-    userIdToDelete = user.id;
-
-    const slug = await makeUniqueSlug(supabase, barbershopName);
-
-    const { data: barbershop, error: shopError } = await supabase
-      .from("barbershops")
-      .insert({
-        owner_id: user.id,
-        name: barbershopName,
-        phone: barbershopPhone,
-        cnpj: barbershopCnpj,
-        admin_name: adminName,
-        admin_cpf: adminCpf,
-        admin_phone: adminPhone,
-        plan: "complete",
-        subscription_status: "pending",
-        active: false,
-        slug,
-        setup_completed: true,
-        setup_completed_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (shopError || !barbershop) {
-      throw new Error(shopError?.message || "Não foi possível criar a barbearia.");
-    }
-
-    barbershopIdToDelete = barbershop.id;
-
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const expectedEnd = addMonths(now, plan.periodMonths);
+    const graceUntil = addDays(expectedEnd, 3);
     const orderNsu = crypto.randomUUID();
-    const { checkoutUrl, response, invoiceSlug } = await createInfinitePayCheckout(req, plan, orderNsu, {
+
+    let userId: string;
+    let barbershopId: string;
+    let replaced = false;
+    let replacedOrderNsus: string[] = [];
+
+    if (existing && ["active", "renewal_pending", "overdue"].includes(String(existing.status || "").toLowerCase())) {
+      throw new Error("Este e-mail já possui uma assinatura ativa. Para trocar de plano, acesse o sistema e solicite a mudança para a próxima renovação.");
+    }
+
+    if (existing && ["pending", "expired", "canceled", "cancelled"].includes(String(existing.status || "").toLowerCase()) && existing.user_id && existing.barbershop_id) {
+      replaced = true;
+      userId = existing.user_id;
+      barbershopId = existing.barbershop_id;
+      replacedOrderNsus = getReplacedOrderList(existing);
+
+      await updateUserPasswordAndMetadata(supabase, userId, {
+        adminName, adminCpf, adminPhone, adminPassword,
+      });
+
+      await supabase
+        .from("barbershops")
+        .update({
+          name: barbershopName,
+          phone: barbershopPhone,
+          cnpj: barbershopCnpj,
+          admin_name: adminName,
+          admin_cpf: adminCpf,
+          admin_phone: adminPhone,
+          active: false,
+          subscription_status: "pending",
+          updated_at: nowIso,
+        })
+        .eq("id", barbershopId);
+    } else {
+      const { data: createdUser, error: createUserError } = await supabase.auth.admin.createUser({
+        email: adminEmail,
+        password: adminPassword,
+        email_confirm: true,
+        user_metadata: {
+          must_change_password: false,
+          setup_completed: true,
+          admin_name: adminName,
+          admin_cpf: adminCpf,
+          admin_phone: adminPhone,
+        },
+      });
+
+      if (createUserError || !createdUser?.user) {
+        throw new Error(createUserError?.message || "Não foi possível criar o usuário.");
+      }
+
+      userId = createdUser.user.id;
+      userIdToDelete = userId;
+
+      const slug = await makeUniqueSlug(supabase, barbershopName);
+
+      const { data: barbershop, error: shopError } = await supabase
+        .from("barbershops")
+        .insert({
+          owner_id: userId,
+          name: barbershopName,
+          phone: barbershopPhone,
+          cnpj: barbershopCnpj,
+          admin_name: adminName,
+          admin_cpf: adminCpf,
+          admin_phone: adminPhone,
+          plan: "complete",
+          subscription_status: "pending",
+          active: false,
+          slug,
+          setup_completed: true,
+          setup_completed_at: nowIso,
+        })
+        .select()
+        .single();
+
+      if (shopError || !barbershop) {
+        throw new Error(shopError?.message || "Não foi possível criar a barbearia.");
+      }
+
+      barbershopId = barbershop.id;
+      barbershopIdToDelete = barbershopId;
+    }
+
+    const checkout = await createCheckout(req, plan, orderNsu, {
       adminName, adminEmail, adminPhone,
     });
 
-    const today = new Date();
-    const expectedEnd = addMonths(today, plan.periodMonths);
-    const graceUntil = addDays(expectedEnd, 3);
+    const subscriptionPayload = {
+      user_id: userId,
+      barbershop_id: barbershopId,
+      admin_name: adminName,
+      admin_email: adminEmail,
+      admin_phone: adminPhone,
+      admin_cpf: adminCpf,
+      barbershop_name: barbershopName,
+      barbershop_cnpj: barbershopCnpj,
+      barbershop_phone: barbershopPhone,
+      plan_code: plan.code,
+      plan_label: plan.label,
+      plan_name: plan.label,
+      plan_display_price: plan.displayPrice,
+      amount: plan.totalCents / 100,
+      amount_cents: plan.totalCents,
+      installments: plan.installments,
+      period_months: plan.periodMonths,
+      interval_days: plan.intervalDays,
+      grace_days: 3,
+      cycle: plan.code === "monthly" ? "30_DAYS" : `${plan.periodMonths}_MONTHS`,
+      payment_method: "CHECKOUT",
+      status: "pending",
+      external_provider: "infinitepay",
+      order_nsu: orderNsu,
+      replaced_order_nsus: replacedOrderNsus,
+      link_replaced_at: replaced ? nowIso : null,
+      external_invoice_slug: checkout.invoiceSlug,
+      checkout_url: checkout.checkoutUrl,
+      invoice_url: checkout.checkoutUrl,
+      infinitepay_payload: checkout.response,
+      expected_period_start: isoDate(now),
+      expected_period_end: isoDate(expectedEnd),
+      expected_grace_until: isoDate(graceUntil),
+      current_period_start: null,
+      current_period_end: null,
+      grace_until: null,
+      next_charge_at: null,
+      renewal_created_at: null,
+      paid_at: null,
+      next_due_date: isoDate(now),
+      updated_at: nowIso,
+    };
 
-    const { data: systemSubscription, error: systemSubError } = await supabase
-      .from("system_subscriptions")
-      .insert({
-        user_id: user.id,
-        barbershop_id: barbershop.id,
-        admin_name: adminName,
-        admin_email: adminEmail,
-        admin_phone: adminPhone,
-        admin_cpf: adminCpf,
-        barbershop_name: barbershopName,
-        barbershop_cnpj: barbershopCnpj,
-        barbershop_phone: barbershopPhone,
-        plan_code: plan.code,
-        plan_label: plan.label,
-        plan_name: plan.label,
-        plan_display_price: plan.displayPrice,
-        amount: plan.totalCents / 100,
-        amount_cents: plan.totalCents,
-        installments: plan.installments,
-        period_months: plan.periodMonths,
-        interval_days: plan.intervalDays,
-        grace_days: 3,
-        cycle: plan.code === "monthly" ? "30_DAYS" : `${plan.periodMonths}_MONTHS`,
-        payment_method: "CHECKOUT",
-        status: "pending",
-        external_provider: "infinitepay",
-        order_nsu: orderNsu,
-        external_invoice_slug: invoiceSlug,
-        checkout_url: checkoutUrl,
-        invoice_url: checkoutUrl,
-        infinitepay_payload: response,
-        expected_period_start: isoDate(today),
-        expected_period_end: isoDate(expectedEnd),
-        expected_grace_until: isoDate(graceUntil),
-        next_due_date: isoDate(today),
-      })
-      .select()
-      .single();
+    let saved: any = null;
 
-    if (systemSubError) {
-      throw new Error(`Cobrança criada, mas houve erro ao salvar a assinatura: ${systemSubError.message}`);
+    if (replaced && existing?.id) {
+      const { data, error } = await supabase
+        .from("system_subscriptions")
+        .update(subscriptionPayload)
+        .eq("id", existing.id)
+        .select()
+        .single();
+
+      if (error) throw new Error(`Novo link criado, mas houve erro ao salvar a troca: ${error.message}`);
+      saved = data;
+    } else {
+      const { data, error } = await supabase
+        .from("system_subscriptions")
+        .insert(subscriptionPayload)
+        .select()
+        .single();
+
+      if (error) throw new Error(`Cobrança criada, mas houve erro ao salvar a assinatura: ${error.message}`);
+      saved = data;
+      systemSubscriptionIdToDelete = null;
     }
 
     userIdToDelete = null;
@@ -312,15 +398,19 @@ serve(async (req) => {
 
     return jsonResponse({
       ok: true,
-      subscription: systemSubscription,
-      checkoutUrl,
-      invoiceUrl: checkoutUrl,
+      replaced,
+      subscription: saved,
+      checkoutUrl: checkout.checkoutUrl,
+      invoiceUrl: checkout.checkoutUrl,
       plan,
-      message: "Assinatura criada. Após a confirmação do pagamento, o acesso será liberado.",
+      message: replaced
+        ? "Novo link gerado. O link anterior foi substituído e não liberará acesso automaticamente."
+        : "Assinatura criada. Após a confirmação do pagamento, o acesso será liberado.",
     });
   } catch (err) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      if (systemSubscriptionIdToDelete) await supabase.from("system_subscriptions").delete().eq("id", systemSubscriptionIdToDelete);
       if (barbershopIdToDelete) await supabase.from("barbershops").delete().eq("id", barbershopIdToDelete);
       if (userIdToDelete) await supabase.auth.admin.deleteUser(userIdToDelete);
     } catch (_) {}

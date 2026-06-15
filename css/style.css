@@ -413,3 +413,12 @@ select:focus{
   .plan-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .site-plans-preview{grid-template-columns:1fr 1fr}
 }
+
+
+/* Destaque para plano anual e troca de link pendente */
+.plan-choice.annual-choice{background:linear-gradient(180deg,rgba(33,178,109,.18),rgba(31,95,255,.09));border-color:rgba(33,178,109,.58)}
+.plan-choice.annual-choice.active{border-color:rgba(33,178,109,.88);box-shadow:0 0 0 3px rgba(33,178,109,.13),0 18px 36px rgba(0,0,0,.22)}
+.best-badge{position:absolute;right:12px;top:12px;padding:6px 9px;border-radius:999px;background:rgba(33,178,109,.18);border:1px solid rgba(33,178,109,.36);color:#eafff4;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.plan-change-note{margin:0;padding:12px 13px;border-radius:15px;background:rgba(31,95,255,.09);border:1px solid rgba(31,95,255,.16);color:#dce8ff;font-size:12px;line-height:1.45}
+.site-plans-preview div.featured{display:grid;align-items:start;grid-template-columns:1fr auto;gap:4px 12px;background:rgba(33,178,109,.10);border-color:rgba(33,178,109,.28)}
+.site-plans-preview div.featured small{grid-column:1/-1;color:#dfffee;font-size:12px;line-height:1.35}
