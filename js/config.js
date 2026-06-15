@@ -4,6 +4,6 @@
 // 3) Copie a Project URL e a anon public key aqui
 
 window.NAVALHAOS_CONFIG = {
-  SUPABASE_URL: 'COLE_AQUI_SUA_SUPABASE_URL',
-  SUPABASE_ANON_KEY: 'COLE_AQUI_SUA_SUPABASE_ANON_KEY'
+  SUPABASE_URL: 'https://rxyidpmzuvczevprqiqu.supabase.co/rest/v1/',
+  SUPABASE_ANON_KEY: 'sb_publishable_XGTScRO4yfeKxrEeH7w2Dw_ORLGwxgM'
 };
