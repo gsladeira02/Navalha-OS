@@ -1,53 +1,23 @@
 # NavalhaOS
 
-Sistema de gestão para barbearias com agenda, clientes, barbeiros, serviços, caixa e comissões.
+Versão final do sistema para clientes, com visual em azul e vermelho, logo própria e acesso apenas para contas ativas.
 
-## Importante
+## Estrutura
+- Login sem cadastro público
+- Dashboard
+- Agenda
+- Clientes
+- Barbeiros
+- Serviços
+- Caixa
+- Comissões
 
-Esta versão **não permite criar conta pelo site**. O login só funciona para usuários criados manualmente no Supabase e vinculados a uma barbearia ativa.
-
-## Como configurar
-
+## Configuração rápida
 1. Crie um projeto no Supabase.
-2. Vá em **SQL Editor** e rode `sql/schema.sql`.
-3. Em `js/config.js`, coloque sua `SUPABASE_URL` e sua `SUPABASE_ANON_KEY`.
-4. No Supabase, vá em **Authentication > Users** e crie o usuário do cliente manualmente.
-5. Copie o UUID do usuário criado.
-6. Rode no SQL Editor:
+2. Rode o arquivo `sql/schema.sql`.
+3. Confira o arquivo `js/config.js`.
+4. Crie os usuários dos clientes manualmente em **Authentication > Users**.
+5. Vincule cada cliente em `public.barbershops` com `subscription_status = 'active'`.
 
-```sql
-insert into public.barbershops (owner_id, name, phone, plan, subscription_status, active)
-values ('UUID_DO_USUARIO', 'Nome da Barbearia', '27999999999', 'professional', 'active', true);
-```
-
-## Como bloquear uma conta
-
-```sql
-update public.barbershops
-set subscription_status = 'inactive', active = false
-where owner_id = 'UUID_DO_USUARIO';
-```
-
-## Como subir no GitHub e Vercel
-
-```bash
-git init
-git add .
-git commit -m "primeira versão NavalhaOS"
-git branch -M main
-git remote add origin URL_DO_REPOSITORIO
-git push -u origin main
-```
-
-Depois conecte o repositório na Vercel.
-
-## Páginas
-
-- `login.html` — login sem cadastro público
-- `dashboard.html` — resumo financeiro e agenda do dia
-- `agenda.html` — marcação e conclusão de atendimentos
-- `clientes.html` — cadastro de clientes
-- `barbeiros.html` — cadastro de barbeiros e comissão
-- `servicos.html` — cadastro de serviços
-- `caixa.html` — entradas e saídas
-- `comissoes.html` — cálculo de comissão por barbeiro
+## Observação
+O site não mostra mensagens administrativas na interface. O acesso ao painel só é liberado para usuários com barbearia ativa no banco.

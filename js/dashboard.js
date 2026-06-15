@@ -1,23 +1,42 @@
-(async function(){
-  const shop = await bootLayout('Dashboard', 'Resumo da sua barbearia em tempo real.'); if(!shop) return;
+(async () => {
+  await requireAuth('Dashboard', 'Resumo da sua operação hoje');
+  const shopId = activeShop.id;
   const today = todayISO();
-  const monthStart = today.slice(0,8)+'01';
-  const [{data: appts},{data: cash},{data: customers},{data: barbers}] = await Promise.all([
-    db.from('appointments').select('*').eq('barbershop_id', shop.id).gte('appointment_date', monthStart),
-    db.from('cash_entries').select('*').eq('barbershop_id', shop.id).gte('entry_date', monthStart),
-    db.from('customers').select('id').eq('barbershop_id', shop.id),
-    db.from('barbers').select('id').eq('barbershop_id', shop.id).eq('active', true)
+  const monthStart = today.slice(0, 8) + '01';
+
+  const [cashRes, appointmentsRes, customersRes, barbersRes, servicesRes] = await Promise.all([
+    db.from('cash_entries').select('*').eq('barbershop_id', shopId),
+    db.from('appointments').select('*').eq('barbershop_id', shopId),
+    db.from('customers').select('id').eq('barbershop_id', shopId),
+    db.from('barbers').select('id').eq('barbershop_id', shopId).eq('active', true),
+    db.from('services').select('id').eq('barbershop_id', shopId).eq('active', true)
   ]);
-  const todays = (appts||[]).filter(a=>a.appointment_date===today);
-  const doneToday = todays.filter(a=>a.status==='concluido');
-  const monthRevenue = (cash||[]).filter(c=>c.type==='entrada').reduce((s,c)=>s+Number(c.amount||0),0);
-  const todayRevenue = (cash||[]).filter(c=>c.entry_date===today && c.type==='entrada').reduce((s,c)=>s+Number(c.amount||0),0);
-  document.getElementById('todayRevenue').textContent = money(todayRevenue);
-  document.getElementById('monthRevenue').textContent = money(monthRevenue);
-  document.getElementById('todayAppointments').textContent = todays.length;
-  document.getElementById('doneToday').textContent = doneToday.length;
-  document.getElementById('customersCount').textContent = (customers||[]).length;
-  document.getElementById('barbersCount').textContent = (barbers||[]).length;
-  const tbody = document.getElementById('todayRows');
-  tbody.innerHTML = todays.length ? todays.sort((a,b)=>a.start_time.localeCompare(b.start_time)).map(a=>`<tr><td>${a.start_time?.slice(0,5)}</td><td>${a.customer_name||'-'}</td><td>${a.barber_name||'-'}</td><td>${a.service_name||'-'}</td><td>${statusBadge(a.status)}</td><td>${money(a.price)}</td></tr>`).join('') : `<tr><td colspan="6" class="empty">Nenhum horário marcado hoje.</td></tr>`;
+
+  const cash = cashRes.data || [];
+  const appointments = appointmentsRes.data || [];
+  const todayCash = cash.filter(i => i.entry_date === today && i.type === 'entrada');
+  const monthCash = cash.filter(i => i.entry_date >= monthStart && i.type === 'entrada');
+  const todayAppts = appointments.filter(i => i.appointment_date === today);
+  const todayDone = todayAppts.filter(i => i.status === 'concluido');
+
+  document.getElementById('todayRevenue').textContent = currency.format(todayCash.reduce((s,i)=>s+Number(i.amount||0),0));
+  document.getElementById('monthRevenue').textContent = currency.format(monthCash.reduce((s,i)=>s+Number(i.amount||0),0));
+  document.getElementById('todayAppointments').textContent = todayAppts.length;
+  document.getElementById('doneToday').textContent = todayDone.length;
+  document.getElementById('customersCount').textContent = (customersRes.data || []).length;
+  document.getElementById('barbersCount').textContent = (barbersRes.data || []).length;
+  document.getElementById('servicesCount').textContent = (servicesRes.data || []).length;
+  document.getElementById('cashCount').textContent = todayCash.length;
+
+  const rows = document.getElementById('todayRows');
+  const sorted = todayAppts.sort((a,b)=> String(a.start_time).localeCompare(String(b.start_time)));
+  rows.innerHTML = sorted.length ? sorted.map(item => `
+    <tr>
+      <td>${item.start_time?.slice(0,5) || '-'}</td>
+      <td>${escapeHtml(item.customer_name || '-')}</td>
+      <td>${escapeHtml(item.barber_name || '-')}</td>
+      <td>${escapeHtml(item.service_name || '-')}</td>
+      <td>${badge(item.status)}</td>
+      <td>${currency.format(Number(item.price || 0))}</td>
+    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">Nenhum horário para hoje.</div></td></tr>`;
 })();

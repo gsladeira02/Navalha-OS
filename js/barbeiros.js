@@ -1,7 +1,30 @@
-(async function(){
- const shop=await bootLayout('Barbeiros','Cadastre profissionais e percentuais de comissão.'); if(!shop)return;
- const form=document.getElementById('form'); const tbody=document.getElementById('rows');
- async function load(){ const {data,error}=await db.from('barbers').select('*').eq('barbershop_id',shop.id).order('name'); if(error){toast(error.message,'err');return} tbody.innerHTML=(data||[]).map(b=>`<tr><td>${b.name}</td><td>${b.phone||'-'}</td><td>${Number(b.commission_percent||0)}%</td><td>${b.active?'Ativo':'Inativo'}</td><td class="actions"><button class="btn danger" data-del="${b.id}">Excluir</button></td></tr>`).join('')||`<tr><td colspan="5" class="empty">Nenhum barbeiro cadastrado.</td></tr>`; document.querySelectorAll('[data-del]').forEach(btn=>btn.onclick=async()=>{ if(confirm('Excluir barbeiro?')){ await db.from('barbers').delete().eq('id',btn.dataset.del); load(); }}); }
- form.onsubmit=async e=>{ e.preventDefault(); const item={barbershop_id:shop.id,name:name.value.trim(),phone:phone.value.trim(),commission_percent:Number(commission.value||0),active:true}; const {error}=await db.from('barbers').insert(item); if(error) return toast(error.message,'err'); form.reset(); commission.value=50; toast('Barbeiro cadastrado.'); load(); };
- load();
+async function loadBarbers(){
+  const { data } = await db.from('barbers').select('*').eq('barbershop_id', activeShop.id).order('created_at',{ascending:false});
+  const rows = document.getElementById('rows');
+  rows.innerHTML = (data || []).length ? data.map(item => `
+    <tr>
+      <td>${escapeHtml(item.name)}</td>
+      <td>${escapeHtml(item.phone || '-')}</td>
+      <td>${Number(item.commission_percent || 0)}%</td>
+      <td><span class="badge ${item.active ? 'ativo':'inativo'}">${item.active ? 'ativo':'inativo'}</span></td>
+      <td><div class="actions"><button class="btn secondary small" onclick="toggleBarber('${item.id}', ${item.active ? 'false':'true'})">${item.active ? 'Inativar':'Ativar'}</button><button class="btn danger small" onclick="removeBarber('${item.id}')">Excluir</button></div></td>
+    </tr>`).join('') : `<tr><td colspan="5"><div class="empty">Nenhum barbeiro cadastrado.</div></td></tr>`;
+}
+window.toggleBarber = async (id, active) => { await db.from('barbers').update({ active }).eq('id', id).eq('barbershop_id', activeShop.id); loadBarbers(); };
+window.removeBarber = async (id) => { if (!confirm('Excluir barbeiro?')) return; await db.from('barbers').delete().eq('id', id).eq('barbershop_id', activeShop.id); loadBarbers(); };
+(async () => {
+  await requireAuth('Barbeiros', 'Equipe e comissões da sua barbearia');
+  await loadBarbers();
+  document.getElementById('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await db.from('barbers').insert({
+      barbershop_id: activeShop.id,
+      name: document.getElementById('name').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      commission_percent: Number(document.getElementById('commission').value || 0)
+    });
+    e.target.reset();
+    document.getElementById('commission').value = 50;
+    loadBarbers();
+  });
 })();

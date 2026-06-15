@@ -1,17 +1,41 @@
-(async function(){
- const shop=await bootLayout('Comissões','Veja quanto cada barbeiro tem a receber.'); if(!shop)return;
- const start=document.getElementById('start'); const end=document.getElementById('end'); const tbody=document.getElementById('rows');
- const now=todayISO(); start.value=now.slice(0,8)+'01'; end.value=now;
- async function load(){
-  const [{data:barbers,error:e1},{data:appts,error:e2},{data:services,error:e3}]=await Promise.all([
-   db.from('barbers').select('*').eq('barbershop_id',shop.id).order('name'),
-   db.from('appointments').select('*').eq('barbershop_id',shop.id).eq('status','concluido').gte('appointment_date',start.value).lte('appointment_date',end.value),
-   db.from('services').select('*').eq('barbershop_id',shop.id)
-  ]);
-  if(e1||e2||e3)return toast((e1||e2||e3).message,'err');
-  const rows=(barbers||[]).map(b=>{ const mine=(appts||[]).filter(a=>a.barber_id===b.id); const total=mine.reduce((s,a)=>s+Number(a.price||0),0); const commission=mine.reduce((s,a)=>{ const svc=(services||[]).find(x=>x.id===a.service_id); const pct=Number((svc&&svc.commission_percent!=null?svc.commission_percent:b.commission_percent)||0); return s+(Number(a.price||0)*pct/100); },0); return {b,mine,total,commission}; });
-  grandTotal.textContent=money(rows.reduce((s,r)=>s+r.total,0)); grandCommission.textContent=money(rows.reduce((s,r)=>s+r.commission,0));
-  tbody.innerHTML=rows.map(r=>`<tr><td>${r.b.name}</td><td>${r.mine.length}</td><td>${money(r.total)}</td><td>${Number(r.b.commission_percent||0)}%</td><td>${money(r.commission)}</td></tr>`).join('')||`<tr><td colspan="5" class="empty">Nenhum dado no período.</td></tr>`;
- }
- document.getElementById('filterBtn').onclick=load; load();
+async function loadCommissions(){
+  const start = document.getElementById('start').value;
+  const end = document.getElementById('end').value;
+  let query = db.from('appointments').select('*').eq('barbershop_id', activeShop.id).eq('status','concluido');
+  if (start) query = query.gte('appointment_date', start);
+  if (end) query = query.lte('appointment_date', end);
+  const { data } = await query;
+  const items = data || [];
+  const grouped = {};
+  items.forEach(item => {
+    const key = item.barber_name || 'Sem barbeiro';
+    if (!grouped[key]) grouped[key] = { count: 0, total: 0, commissionPercent: 0, commissionValue: 0 };
+    const price = Number(item.price || 0);
+    const percent = Number(item.commission_percent || 0);
+    grouped[key].count += 1;
+    grouped[key].total += price;
+    grouped[key].commissionPercent = percent;
+    grouped[key].commissionValue += price * (percent / 100);
+  });
+  const rows = document.getElementById('rows');
+  const entries = Object.entries(grouped);
+  rows.innerHTML = entries.length ? entries.map(([name, info]) => `
+    <tr>
+      <td>${escapeHtml(name)}</td>
+      <td>${info.count}</td>
+      <td>${currency.format(info.total)}</td>
+      <td>${info.commissionPercent}%</td>
+      <td>${currency.format(info.commissionValue)}</td>
+    </tr>`).join('') : `<tr><td colspan="5"><div class="empty">Nenhum atendimento concluído no período.</div></td></tr>`;
+  document.getElementById('grandTotal').textContent = currency.format(items.reduce((s,i)=>s+Number(i.price||0),0));
+  document.getElementById('grandCommission').textContent = currency.format(entries.reduce((s,[,info])=>s+info.commissionValue,0));
+}
+(async () => {
+  await requireAuth('Comissões', 'Consolidado por barbeiro e período');
+  const today = todayISO();
+  const startMonth = today.slice(0,8) + '01';
+  document.getElementById('start').value = startMonth;
+  document.getElementById('end').value = today;
+  await loadCommissions();
+  document.getElementById('filterBtn').addEventListener('click', loadCommissions);
 })();
