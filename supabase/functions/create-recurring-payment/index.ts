@@ -29,6 +29,28 @@ function intervalDaysToCycle(days: number) {
   return null;
 }
 
+function mapAsaasPaymentStatus(status: unknown) {
+  const value = String(status || "").toUpperCase();
+  if (["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(value)) return "paid";
+  if (value === "OVERDUE") return "overdue";
+  if (["REFUNDED", "DELETED", "CANCELED", "CANCELLED"].includes(value)) return "canceled";
+  return "pending";
+}
+
+async function getFirstPaymentFromSubscription(baseUrl: string, apiKey: string, subscriptionId: string) {
+  try {
+    const res = await fetch(`${baseUrl}/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=1`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", "access_token": apiKey },
+    });
+    const json = await res.json();
+    if (!res.ok) return null;
+    return Array.isArray(json?.data) ? json.data[0] || null : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -123,10 +145,10 @@ serve(async (req) => {
     }
 
     const dueDate = subscription.next_billing_date || new Date().toISOString().slice(0, 10);
-    const paymentMethod = String(subscription.payment_method || plan.payment_method || body?.paymentMethod || "PIX").toUpperCase();
+    const paymentMethod = String(subscription.payment_method || body?.paymentMethod || "PIX").toUpperCase();
     const billingType = methodToBillingType(paymentMethod);
-    const isRecurring = subscription.is_recurring !== false && plan.is_recurring !== false && body?.isRecurring !== false;
-    const intervalDays = Number(subscription.interval_days || plan.interval_days || body?.intervalDays || 30);
+    const isRecurring = subscription.is_recurring !== false && body?.isRecurring !== false;
+    const intervalDays = Number(subscription.interval_days || body?.intervalDays || 30);
 
     if (isRecurring) {
       const cycle = intervalDaysToCycle(intervalDays);
@@ -153,12 +175,16 @@ serve(async (req) => {
       const subJson = await subRes.json();
       if (!subRes.ok) throw new Error(subJson?.errors?.[0]?.description || "Erro ao criar assinatura no Asaas.");
 
+      const firstAsaasPayment = await getFirstPaymentFromSubscription(ASAAS_BASE_URL, integration.payment_api_key, subJson.id);
+      const firstPaymentUrl = firstAsaasPayment?.invoiceUrl || firstAsaasPayment?.bankSlipUrl || subJson.invoiceUrl || subJson.bankSlipUrl || null;
+      const firstPaymentStatus = mapAsaasPaymentStatus(firstAsaasPayment?.status || "PENDING");
+
       await supabase
         .from("customer_subscriptions")
         .update({
           external_provider: "asaas",
           external_subscription_id: subJson.id,
-          checkout_url: subJson.invoiceUrl || subJson.bankSlipUrl || subscription.checkout_url || null,
+          checkout_url: firstPaymentUrl || subscription.checkout_url || null,
           payment_method: billingType,
           is_recurring: true,
           interval_days: intervalDays,
@@ -176,13 +202,16 @@ serve(async (req) => {
           plan_name: plan.name,
           amount: Number(plan.price || 0),
           due_date: dueDate,
-          status: "pending",
-          checkout_url: subJson.invoiceUrl || subJson.bankSlipUrl || null,
+          status: firstPaymentStatus,
+          checkout_url: firstPaymentUrl,
           payment_method: billingType,
           is_recurring: true,
           interval_days: intervalDays,
           external_provider: "asaas",
           external_subscription_id: subJson.id,
+          external_payment_id: firstAsaasPayment?.id || null,
+          asaas_status: firstAsaasPayment?.status || "PENDING",
+          status_checked_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -230,13 +259,15 @@ serve(async (req) => {
         plan_name: plan.name,
         amount: Number(plan.price || 0),
         due_date: dueDate,
-        status: "pending",
+        status: mapAsaasPaymentStatus(payJson.status || "PENDING"),
         checkout_url: payJson.invoiceUrl || payJson.bankSlipUrl || null,
         payment_method: billingType,
         is_recurring: false,
         interval_days: null,
         external_provider: "asaas",
         external_payment_id: payJson.id || null,
+        asaas_status: payJson.status || "PENDING",
+        status_checked_at: new Date().toISOString(),
       })
       .select()
       .single();

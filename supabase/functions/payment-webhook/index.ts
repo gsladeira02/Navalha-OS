@@ -27,16 +27,22 @@ serve(async (req) => {
       return jsonResponse({ ok: true, message: "Webhook recebido sem ID de pagamento." });
     }
 
-    const status = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED", "payment.paid"].includes(event)
+    const asaasStatus = payment.status || null;
+    const status = ["PAYMENT_RECEIVED", "PAYMENT_CONFIRMED", "PAYMENT_RECEIVED_IN_CASH", "payment.paid"].includes(event) || ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(String(asaasStatus).toUpperCase())
       ? "paid"
-      : ["PAYMENT_OVERDUE", "payment.overdue"].includes(event)
+      : ["PAYMENT_OVERDUE", "payment.overdue"].includes(event) || String(asaasStatus).toUpperCase() === "OVERDUE"
         ? "overdue"
-        : "pending";
+        : ["PAYMENT_DELETED", "PAYMENT_REFUNDED"].includes(event)
+          ? "canceled"
+          : "pending";
 
     const { data: updated } = await supabase
       .from("subscription_payments")
       .update({
         status,
+        asaas_status: asaasStatus,
+        status_checked_at: new Date().toISOString(),
+        checkout_url: payment.invoiceUrl || payment.bankSlipUrl || null,
         paid_at: status === "paid" ? new Date().toISOString() : null,
         external_payment_id: externalPaymentId || null,
       })

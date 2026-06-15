@@ -211,3 +211,29 @@ Na aba **Assinaturas**, o cadastro de plano/cobrança agora permite escolher:
 
 Para recorrência automática via Asaas, use intervalos compatíveis com o Asaas:
 7, 14, 30, 90, 180 ou 365 dias.
+
+
+## Método no cadastro da assinatura
+
+O método de pagamento e a recorrência agora são escolhidos ao criar a **assinatura/cobrança do cliente**, não no cadastro do plano.
+
+Fluxo:
+1. cadastre o plano com nome, valor e descrição;
+2. crie a assinatura do cliente;
+3. escolha Pix, crédito, débito ou boleto;
+4. escolha se é recorrente;
+5. se for recorrente, informe os dias entre cobranças.
+
+
+## Status das cobranças
+
+A aba **Assinaturas** agora mostra o status de cada cobrança em **Pagamentos recorrentes**:
+
+- em aberto;
+- pago;
+- atrasado;
+- cancelado/estornado, quando aplicável.
+
+Foi adicionado o botão **Atualizar status**, que consulta o Asaas pela Edge Function `sync-payment-status`.
+
+Também foi atualizada a função `payment-webhook` para atualizar automaticamente o status quando o Asaas enviar eventos de pagamento.

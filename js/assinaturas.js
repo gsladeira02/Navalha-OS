@@ -6,26 +6,43 @@ let payments = [];
 let invoices = [];
 
 function statusBadge(status){
+  const normalized = String(status || '').toLowerCase();
   const cls = {
     active: 'ativo',
     inactive: 'inativo',
     canceled: 'cancelado',
+    cancelled: 'cancelado',
+    deleted: 'cancelado',
     pending: 'confirmado',
+    open: 'confirmado',
+    received: 'concluido',
+    confirmed: 'concluido',
     paid: 'concluido',
+    received_in_cash: 'concluido',
     overdue: 'cancelado',
+    refunded: 'cancelado',
     issued: 'concluido',
     error: 'cancelado'
-  }[status] || status;
+  }[normalized] || normalized;
+
   const label = {
     active: 'ativo',
     inactive: 'inativo',
     canceled: 'cancelado',
-    pending: 'pendente',
+    cancelled: 'cancelado',
+    deleted: 'cancelado',
+    pending: 'em aberto',
+    open: 'em aberto',
+    received: 'pago',
+    confirmed: 'pago',
     paid: 'pago',
+    received_in_cash: 'pago',
     overdue: 'atrasado',
+    refunded: 'estornado',
     issued: 'emitida',
     error: 'erro'
-  }[status] || status;
+  }[normalized] || normalized || '-';
+
   return `<span class="badge ${cls}">${label}</span>`;
 }
 
@@ -47,6 +64,21 @@ function paymentMethodLabel(value){
   }[value] || value || 'Pix';
 }
 
+function paymentStatusText(status){
+  return {
+    pending: 'em aberto',
+    open: 'em aberto',
+    paid: 'pago',
+    received: 'pago',
+    confirmed: 'pago',
+    overdue: 'atrasado',
+    canceled: 'cancelado',
+    cancelled: 'cancelado',
+    refunded: 'estornado',
+    deleted: 'cancelado'
+  }[String(status || '').toLowerCase()] || status || '-';
+}
+
 function recurringLabel(item){
   const isRecurring = item?.is_recurring !== false;
   if (!isRecurring) return 'Não recorrente';
@@ -54,12 +86,12 @@ function recurringLabel(item){
 }
 
 function updateIntervalVisibility(){
-  const select = document.getElementById('plan_is_recurring');
-  const field = document.getElementById('intervalDaysField');
+  const select = document.getElementById('subscription_is_recurring');
+  const field = document.getElementById('subscriptionIntervalDaysField');
   if (!select || !field) return;
   const show = select.value === 'true';
   field.classList.toggle('hidden', !show);
-  document.getElementById('plan_interval_days').required = show;
+  document.getElementById('subscription_interval_days').required = show;
 }
 
 
@@ -141,7 +173,7 @@ function renderMetrics(){
   const mrr = activeSubs.reduce((sum, sub) => sum + Number(planById(sub.plan_id)?.price || 0), 0);
   document.getElementById('activeSubscriptions').textContent = activeSubs.length;
   document.getElementById('monthlyRecurring').textContent = currency.format(mrr);
-  document.getElementById('pendingPayments').textContent = payments.filter(p => p.status === 'pending' || p.status === 'overdue').length;
+  document.getElementById('pendingPayments').textContent = payments.filter(p => ['pending','open','overdue'].includes(String(p.status || '').toLowerCase())).length;
   document.getElementById('pendingInvoices').textContent = invoices.filter(i => i.status === 'pending' || i.status === 'error').length;
 }
 
@@ -151,14 +183,13 @@ function renderPlans(){
     <tr>
       <td data-label="Plano">${escapeHtml(item.name)}<br><small>${escapeHtml(item.description || '')}</small></td>
       <td data-label="Valor">${currency.format(Number(item.price || 0))}</td>
-      <td data-label="Método">${paymentMethodLabel(item.payment_method || 'PIX')}</td>
-      <td data-label="Tipo">${recurringLabel(item)}</td>
+      <td data-label="Dia base">Dia ${item.billing_day || '-'}</td>
       <td data-label="Status">${statusBadge(item.active ? 'active' : 'inactive')}</td>
       <td data-label="Ações"><div class="actions">
         <button class="btn secondary small" onclick="togglePlan('${item.id}', ${item.active ? 'false':'true'})">${item.active ? 'Inativar':'Ativar'}</button>
         <button class="btn danger small" onclick="removePlan('${item.id}')">Excluir</button>
       </div></td>
-    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">Nenhum plano/cobrança cadastrado.</div></td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="5"><div class="empty">Nenhum plano cadastrado.</div></td></tr>`;
 }
 
 function renderSubscriptions(){
@@ -195,10 +226,11 @@ function renderPayments(){
         <td data-label="Método">${paymentMethodLabel(item.payment_method || plan?.payment_method || 'PIX')}</td>
         <td data-label="Vencimento">${dateBR(item.due_date)}</td>
         <td data-label="Valor">${currency.format(Number(item.amount || 0))}</td>
-        <td data-label="Status">${statusBadge(item.status)}</td>
+        <td data-label="Status">${statusBadge(item.status)}${item.asaas_status ? `<br><small>Asaas: ${escapeHtml(item.asaas_status)}</small>` : ''}${item.status_checked_at ? `<br><small>Atualizado: ${new Date(item.status_checked_at).toLocaleString('pt-BR')}</small>` : ''}</td>
         <td data-label="Ações"><div class="actions">
           ${item.checkout_url ? `<a class="btn secondary small" href="${escapeHtml(item.checkout_url)}" target="_blank">Cobrança</a>` : ''}
-          ${item.status !== 'paid' ? `<button class="btn success small" onclick="markPaymentPaid('${item.id}')">Marcar pago</button>` : ''}
+          <button class="btn secondary small" onclick="syncPaymentStatus('${item.id}')">Atualizar status</button>
+          ${!['paid','received','confirmed'].includes(String(item.status || '').toLowerCase()) ? `<button class="btn success small" onclick="markPaymentPaid('${item.id}')">Marcar pago</button>` : ''}
           <button class="btn primary small" onclick="createInvoiceFromPayment('${item.id}')">Nota</button>
         </div></td>
       </tr>`;
@@ -260,14 +292,25 @@ window.createPayment = async (subscriptionId) => {
       planId: sub?.plan_id || null,
       customerName: customer?.name || sub?.customer_name || null,
       planName: plan?.name || sub?.plan_name || null,
-      paymentMethod: sub?.payment_method || plan?.payment_method || 'PIX',
+      paymentMethod: sub?.payment_method || 'PIX',
       isRecurring: sub?.is_recurring !== false,
-      intervalDays: Number(sub?.interval_days || plan?.interval_days || 30)
+      intervalDays: Number(sub?.interval_days || 30)
     });
     showToast(data?.message || 'Cobrança criada com sucesso.', 'success');
     await loadAll();
   } catch (err) {
     showToast(err.message || 'Não foi possível gerar a cobrança automática.', 'error');
+  }
+};
+
+window.syncPaymentStatus = async (paymentId) => {
+  try {
+    showToast('Consultando status no Asaas...', 'info');
+    const data = await callSecureFunction('sync-payment-status', { paymentId });
+    showToast(data?.message || 'Status atualizado.', 'success');
+    await loadAll();
+  } catch (err) {
+    showToast(err.message || 'Não foi possível atualizar o status.', 'error');
   }
 };
 
@@ -321,7 +364,7 @@ window.removeInvoice = async (id) => {
   document.getElementById('subscription_next_billing').value = todayISO();
   await loadAll();
   await loadIntegrationSettings();
-  document.getElementById('plan_is_recurring')?.addEventListener('change', updateIntervalVisibility);
+  document.getElementById('subscription_is_recurring')?.addEventListener('change', updateIntervalVisibility);
   updateIntervalVisibility();
 
   const integrationForm = document.getElementById('integrationForm');
@@ -355,9 +398,6 @@ window.removeInvoice = async (id) => {
       name: document.getElementById('plan_name').value.trim(),
       price: Number(document.getElementById('plan_price').value || 0),
       billing_day: Number(document.getElementById('plan_billing_day').value || 10),
-      payment_method: document.getElementById('plan_payment_method').value,
-      is_recurring: document.getElementById('plan_is_recurring').value === 'true',
-      interval_days: document.getElementById('plan_is_recurring').value === 'true' ? Number(document.getElementById('plan_interval_days').value || 30) : null,
       description: document.getElementById('plan_description').value.trim(),
       active: true
     });
@@ -367,10 +407,6 @@ window.removeInvoice = async (id) => {
     }
     e.target.reset();
     document.getElementById('plan_billing_day').value = 10;
-    document.getElementById('plan_payment_method').value = 'PIX';
-    document.getElementById('plan_is_recurring').value = 'true';
-    document.getElementById('plan_interval_days').value = 30;
-    updateIntervalVisibility();
     showToast('Plano recorrente cadastrado.', 'success');
     await loadAll();
   });
@@ -390,9 +426,9 @@ window.removeInvoice = async (id) => {
       plan_id: plan.id,
       customer_name: customer.name,
       plan_name: plan.name,
-      payment_method: plan.payment_method || 'PIX',
-      is_recurring: plan.is_recurring !== false,
-      interval_days: plan.is_recurring === false ? null : Number(plan.interval_days || 30),
+      payment_method: document.getElementById('subscription_payment_method').value,
+      is_recurring: document.getElementById('subscription_is_recurring').value === 'true',
+      interval_days: document.getElementById('subscription_is_recurring').value === 'true' ? Number(document.getElementById('subscription_interval_days').value || 30) : null,
       status: 'active',
       start_date: document.getElementById('subscription_start').value,
       next_billing_date: document.getElementById('subscription_next_billing').value,
@@ -405,6 +441,10 @@ window.removeInvoice = async (id) => {
     }
 
     e.target.reset();
+    document.getElementById('subscription_payment_method').value = 'PIX';
+    document.getElementById('subscription_is_recurring').value = 'true';
+    document.getElementById('subscription_interval_days').value = 30;
+    updateIntervalVisibility();
     document.getElementById('subscription_start').value = todayISO();
     document.getElementById('subscription_next_billing').value = todayISO();
     showToast('Assinatura ativada. Agora clique em Gerar cobrança para criar o link no Asaas.', 'success');

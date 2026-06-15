@@ -576,3 +576,12 @@ alter table public.subscription_payments
 add column if not exists payment_method text default 'PIX',
 add column if not exists is_recurring boolean default true,
 add column if not exists interval_days integer;
+
+
+-- Status detalhado das cobranças Asaas
+alter table public.subscription_payments
+add column if not exists asaas_status text,
+add column if not exists status_checked_at timestamptz;
+
+grant select, insert, update, delete on public.subscription_payments to authenticated;
+grant select, insert, update, delete on public.subscription_payments to service_role;
