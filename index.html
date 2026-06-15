@@ -14,7 +14,7 @@
     </a>
     <nav class="site-nav">
       <a href="#beneficios">Benefícios</a>
-      <a href="#assinar">Assinar</a>
+      <a href="#assinar">Planos</a>
       <a class="btn secondary small" href="login.html">Entrar</a>
     </nav>
   </header>
@@ -26,14 +26,14 @@
         <h1>Agenda, clientes, caixa, comissões e cobranças em um só lugar.</h1>
         <p>O NavalhaOS organiza a operação da barbearia no celular, com agenda online, link de agendamento e controle financeiro.</p>
         <div class="site-actions">
-          <a class="btn primary" href="#assinar">Assinar agora</a>
+          <a class="btn primary" href="#assinar">Ver planos</a>
           <a class="btn outline" href="login.html">Já sou cliente</a>
         </div>
       </div>
       <div class="site-hero-card">
-        <div class="site-price-tag">Plano completo</div>
-        <strong id="sitePlanPrice">R$ 14,90/mês</strong>
-        <span>Gateway definido: InfinitePay</span>
+        <div class="site-price-tag">Planos flexíveis</div>
+        <strong>A partir de 12x de R$ 14,90</strong>
+        <span>Escolha o melhor período para sua barbearia.</span>
         <ul>
           <li>Agenda online da barbearia</li>
           <li>Clientes, barbeiros e serviços</li>
@@ -61,15 +61,46 @@
     <section id="assinar" class="site-subscribe">
       <div class="site-subscribe-info">
         <span class="site-kicker">Assinatura do sistema</span>
-        <h2>Assine o NavalhaOS</h2>
-        <p>Preencha os dados, crie sua senha e gere a cobrança pela InfinitePay. Após a confirmação do pagamento pelo webhook, o acesso da barbearia será liberado automaticamente.</p>
-        <div class="site-gateway-box">
-          <strong>Gateway de pagamento definido</strong>
-          <span>InfinitePay — Pix ou cartão de crédito no checkout.</span>
+        <h2>Escolha seu plano</h2>
+        <p>Seu acesso fica ativo pelo período contratado. Após o vencimento, o sistema mantém 3 dias de tolerância com aviso de renovação. Depois disso, a conta é inativada até o próximo pagamento, sem apagar os dados.</p>
+
+        <div class="site-plans-preview">
+          <div><strong>Mensal</strong><span>R$ 49,90</span></div>
+          <div><strong>Trimestral</strong><span>3x de R$ 44,90</span></div>
+          <div><strong>Semestral</strong><span>6x de R$ 39,90</span></div>
+          <div><strong>Anual</strong><span>12x de R$ 14,90</span></div>
         </div>
       </div>
 
       <form id="systemSubscriptionForm" class="site-subscribe-form form">
+        <h3>Plano</h3>
+        <div class="plan-choice-grid" id="planChoiceGrid">
+          <label class="plan-choice active">
+            <input type="radio" name="planCode" value="monthly" checked>
+            <span>Mensal</span>
+            <strong>R$ 49,90</strong>
+            <small>Cobrança a cada 30 dias</small>
+          </label>
+          <label class="plan-choice">
+            <input type="radio" name="planCode" value="quarterly">
+            <span>Trimestral</span>
+            <strong>3x de R$ 44,90</strong>
+            <small>Cobrança a cada 3 meses</small>
+          </label>
+          <label class="plan-choice">
+            <input type="radio" name="planCode" value="semiannual">
+            <span>Semestral</span>
+            <strong>6x de R$ 39,90</strong>
+            <small>Cobrança a cada 6 meses</small>
+          </label>
+          <label class="plan-choice">
+            <input type="radio" name="planCode" value="annual">
+            <span>Anual</span>
+            <strong>12x de R$ 14,90</strong>
+            <small>Cobrança a cada 12 meses</small>
+          </label>
+        </div>
+
         <h3>Dados do administrador</h3>
         <div class="field">
           <label>Nome do administrador</label>
@@ -109,18 +140,6 @@
           <div class="field">
             <label>Celular da barbearia</label>
             <input id="barbershopPhone" required inputmode="tel" placeholder="(27) 99999-9999">
-          </div>
-        </div>
-
-        <h3>Pagamento</h3>
-        <div class="row">
-          <div class="field">
-            <label>Gateway</label>
-            <input id="paymentMethod" value="InfinitePay Checkout" readonly>
-          </div>
-          <div class="field">
-            <label>Plano</label>
-            <input id="planName" value="NavalhaOS Completo" readonly>
           </div>
         </div>
 

@@ -8,8 +8,49 @@ const INFINITEPAY_CHECKOUT_URL = Deno.env.get("INFINITEPAY_CHECKOUT_URL") || "ht
 const INFINITEPAY_HANDLE = (Deno.env.get("INFINITEPAY_HANDLE") || Deno.env.get("NAVALHAOS_INFINITEPAY_HANDLE") || "").replace(/^\$/, "");
 const WEBHOOK_SECRET = Deno.env.get("PAYMENT_WEBHOOK_SECRET") || "";
 const PUBLIC_SITE_URL = (Deno.env.get("NAVALHAOS_PUBLIC_URL") || "").replace(/\/$/, "");
-const PLAN_NAME = Deno.env.get("NAVALHAOS_PLAN_NAME") || "NavalhaOS Completo";
-const PLAN_PRICE = Number(Deno.env.get("NAVALHAOS_PLAN_PRICE") || "14.90");
+
+const PLANS: Record<string, any> = {
+  monthly: {
+    code: "monthly",
+    label: "Mensal",
+    displayPrice: "R$ 49,90",
+    totalCents: 4990,
+    periodMonths: 1,
+    intervalDays: 30,
+    installments: 1,
+    description: "Plano Mensal - NavalhaOS",
+  },
+  quarterly: {
+    code: "quarterly",
+    label: "Trimestral",
+    displayPrice: "3x de R$ 44,90",
+    totalCents: 13470,
+    periodMonths: 3,
+    intervalDays: null,
+    installments: 3,
+    description: "Plano Trimestral - 3x de R$ 44,90 - NavalhaOS",
+  },
+  semiannual: {
+    code: "semiannual",
+    label: "Semestral",
+    displayPrice: "6x de R$ 39,90",
+    totalCents: 23940,
+    periodMonths: 6,
+    intervalDays: null,
+    installments: 6,
+    description: "Plano Semestral - 6x de R$ 39,90 - NavalhaOS",
+  },
+  annual: {
+    code: "annual",
+    label: "Anual",
+    displayPrice: "12x de R$ 14,90",
+    totalCents: 17880,
+    periodMonths: 12,
+    intervalDays: null,
+    installments: 12,
+    description: "Plano Anual - 12x de R$ 14,90 - NavalhaOS",
+  },
+};
 
 function onlyDigits(value: unknown) {
   return String(value || "").replace(/\D/g, "");
@@ -27,6 +68,22 @@ function slugify(value: string) {
 
 function validateEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number) {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
+
+function addMonths(date: Date, months: number) {
+  const d = new Date(date);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d;
 }
 
 async function makeUniqueSlug(supabase: any, baseName: string) {
@@ -61,6 +118,50 @@ function findCheckoutUrl(payload: any) {
   return payload?.url || payload?.link || payload?.checkout_url || payload?.checkoutUrl || payload?.payment_url || payload?.paymentUrl || payload?.data?.url || payload?.data?.link || null;
 }
 
+async function createInfinitePayCheckout(req: Request, plan: any, orderNsu: string, customer: any) {
+  const origin = getRequestOrigin(req);
+  const redirectUrl = origin ? `${origin}/login.html?pagamento=infinitepay&order_nsu=${encodeURIComponent(orderNsu)}` : undefined;
+  const webhookUrl = `${SUPABASE_URL}/functions/v1/payment-webhook${WEBHOOK_SECRET ? `?secret=${encodeURIComponent(WEBHOOK_SECRET)}` : ""}`;
+
+  const checkoutPayload: Record<string, unknown> = {
+    handle: INFINITEPAY_HANDLE,
+    items: [
+      {
+        quantity: 1,
+        price: plan.totalCents,
+        description: `${plan.description} (${plan.displayPrice})`,
+      },
+    ],
+    order_nsu: orderNsu,
+    webhook_url: webhookUrl,
+    customer: {
+      name: customer.adminName,
+      email: customer.adminEmail,
+      phone_number: `+55${customer.adminPhone}`,
+    },
+  };
+
+  if (redirectUrl) checkoutPayload.redirect_url = redirectUrl;
+
+  const linkRes = await fetch(INFINITEPAY_CHECKOUT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(checkoutPayload),
+  });
+
+  const linkJson = await linkRes.json();
+  if (!linkRes.ok) {
+    throw new Error(linkJson?.message || linkJson?.error || "Erro ao criar link de pagamento.");
+  }
+
+  const checkoutUrl = findCheckoutUrl(linkJson);
+  if (!checkoutUrl) {
+    throw new Error(`O checkout respondeu sem link de pagamento. Resposta: ${JSON.stringify(linkJson)}`);
+  }
+
+  return { checkoutUrl, response: linkJson, invoiceSlug: linkJson?.slug || linkJson?.invoice_slug || linkJson?.data?.slug || null };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -69,10 +170,11 @@ serve(async (req) => {
 
   try {
     if (!INFINITEPAY_HANDLE) {
-      throw new Error("Configure o gateway InfinitePay: falta INFINITEPAY_HANDLE nos Secrets do Supabase.");
+      throw new Error("Configure o gateway de pagamento nos Secrets do Supabase.");
     }
 
     const body = await req.json();
+    const plan = PLANS[String(body?.planCode || "monthly")] || PLANS.monthly;
     const adminName = String(body?.adminName || "").trim();
     const adminEmail = String(body?.adminEmail || "").trim().toLowerCase();
     const adminPhone = onlyDigits(body?.adminPhone);
@@ -96,7 +198,7 @@ serve(async (req) => {
       .from("system_subscriptions")
       .select("id,status,checkout_url")
       .eq("admin_email", adminEmail)
-      .in("status", ["pending", "active", "paid"])
+      .in("status", ["pending", "active", "paid", "renewal_pending"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -153,10 +255,14 @@ serve(async (req) => {
 
     barbershopIdToDelete = barbershop.id;
 
-    const amountCents = Math.round(PLAN_PRICE * 100);
     const orderNsu = crypto.randomUUID();
-    const origin = getRequestOrigin(req);
-    const redirectUrl = origin ? `${origin}/login.html?pagamento=infinitepay&order_nsu=${encodeURIComponent(orderNsu)}` : undefined;
+    const { checkoutUrl, response, invoiceSlug } = await createInfinitePayCheckout(req, plan, orderNsu, {
+      adminName, adminEmail, adminPhone,
+    });
+
+    const today = new Date();
+    const expectedEnd = addMonths(today, plan.periodMonths);
+    const graceUntil = addDays(expectedEnd, 3);
 
     const { data: systemSubscription, error: systemSubError } = await supabase
       .from("system_subscriptions")
@@ -170,77 +276,35 @@ serve(async (req) => {
         barbershop_name: barbershopName,
         barbershop_cnpj: barbershopCnpj,
         barbershop_phone: barbershopPhone,
-        plan_name: PLAN_NAME,
-        amount: PLAN_PRICE,
-        cycle: "MONTHLY",
-        payment_method: "INFINITEPAY_CHECKOUT",
+        plan_code: plan.code,
+        plan_label: plan.label,
+        plan_name: plan.label,
+        plan_display_price: plan.displayPrice,
+        amount: plan.totalCents / 100,
+        amount_cents: plan.totalCents,
+        installments: plan.installments,
+        period_months: plan.periodMonths,
+        interval_days: plan.intervalDays,
+        grace_days: 3,
+        cycle: plan.code === "monthly" ? "30_DAYS" : `${plan.periodMonths}_MONTHS`,
+        payment_method: "CHECKOUT",
         status: "pending",
         external_provider: "infinitepay",
         order_nsu: orderNsu,
-        next_due_date: new Date().toISOString().slice(0, 10),
-      })
-      .select()
-      .single();
-
-    if (systemSubError || !systemSubscription) {
-      throw new Error(systemSubError?.message || "Não foi possível salvar a assinatura do sistema.");
-    }
-
-    const webhookUrl = `${SUPABASE_URL}/functions/v1/payment-webhook${WEBHOOK_SECRET ? `?secret=${encodeURIComponent(WEBHOOK_SECRET)}` : ""}`;
-
-    const infinitePayload: Record<string, unknown> = {
-      handle: INFINITEPAY_HANDLE,
-      items: [
-        {
-          quantity: 1,
-          price: amountCents,
-          description: PLAN_NAME,
-        },
-      ],
-      order_nsu: orderNsu,
-      webhook_url: webhookUrl,
-      customer: {
-        name: adminName,
-        email: adminEmail,
-        phone_number: `+55${adminPhone}`,
-      },
-    };
-
-    if (redirectUrl) infinitePayload.redirect_url = redirectUrl;
-
-    const linkRes = await fetch(INFINITEPAY_CHECKOUT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(infinitePayload),
-    });
-
-    const linkJson = await linkRes.json();
-    if (!linkRes.ok) {
-      throw new Error(linkJson?.message || linkJson?.error || "Erro ao criar link de pagamento na InfinitePay.");
-    }
-
-    const checkoutUrl = findCheckoutUrl(linkJson);
-    if (!checkoutUrl) {
-      throw new Error(`InfinitePay respondeu sem link de checkout. Resposta: ${JSON.stringify(linkJson)}`);
-    }
-
-    const invoiceSlug = linkJson?.slug || linkJson?.invoice_slug || linkJson?.data?.slug || null;
-
-    const { data: updatedSub, error: updateError } = await supabase
-      .from("system_subscriptions")
-      .update({
+        external_invoice_slug: invoiceSlug,
         checkout_url: checkoutUrl,
         invoice_url: checkoutUrl,
-        external_invoice_slug: invoiceSlug,
-        infinitepay_payload: linkJson,
-        updated_at: new Date().toISOString(),
+        infinitepay_payload: response,
+        expected_period_start: isoDate(today),
+        expected_period_end: isoDate(expectedEnd),
+        expected_grace_until: isoDate(graceUntil),
+        next_due_date: isoDate(today),
       })
-      .eq("id", systemSubscription.id)
       .select()
       .single();
 
-    if (updateError) {
-      throw new Error(`Link criado na InfinitePay, mas houve erro ao salvar no NavalhaOS: ${updateError.message}`);
+    if (systemSubError) {
+      throw new Error(`Cobrança criada, mas houve erro ao salvar a assinatura: ${systemSubError.message}`);
     }
 
     userIdToDelete = null;
@@ -248,11 +312,11 @@ serve(async (req) => {
 
     return jsonResponse({
       ok: true,
-      subscription: updatedSub,
+      subscription: systemSubscription,
       checkoutUrl,
       invoiceUrl: checkoutUrl,
-      gateway: "infinitepay",
-      message: "Assinatura do NavalhaOS criada na InfinitePay. Após a confirmação do pagamento, o acesso será liberado.",
+      plan,
+      message: "Assinatura criada. Após a confirmação do pagamento, o acesso será liberado.",
     });
   } catch (err) {
     try {

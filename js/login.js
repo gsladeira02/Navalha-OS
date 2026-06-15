@@ -26,7 +26,7 @@ loginForm.addEventListener('submit', async (e) => {
       .eq('owner_id', data.user.id)
       .maybeSingle();
     if (shopError) throw shopError;
-    if (!shop || !shop.active || shop.subscription_status !== 'active') {
+    if (!shop || !shop.active || !['active','renewal_pending'].includes(shop.subscription_status)) {
       await db.auth.signOut();
       showToast('Acesso indisponível. Fale com o responsável pelo sistema.', 'error');
       return;

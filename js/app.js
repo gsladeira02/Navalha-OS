@@ -27,7 +27,7 @@ window.requireAuth = async function(pageTitle, subtitle){
     .select('id,name,phone,cnpj,admin_name,admin_cpf,admin_phone,plan,active,subscription_status,slug,booking_min_advance_minutes')
     .eq('owner_id', session.user.id)
     .maybeSingle();
-  if (error || !shop || !shop.active || shop.subscription_status !== 'active') {
+  if (error || !shop || !shop.active || !['active','renewal_pending'].includes(shop.subscription_status)) {
     await db.auth.signOut();
     location.href = 'login.html';
     throw new Error('Acesso bloqueado');
@@ -46,9 +46,33 @@ window.requireAuth = async function(pageTitle, subtitle){
   document.querySelectorAll('[data-nav]').forEach(a => {
     if (a.dataset.nav === current) a.classList.add('active');
   });
+  await showSystemRenewalAlert(session.user.id, shop);
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.onclick = async () => { await db.auth.signOut(); location.href = 'login.html'; };
   return { session, shop };
+};
+
+window.showSystemRenewalAlert = async function(userId, shop){
+  if (!shop || shop.subscription_status !== 'renewal_pending') return;
+
+  const { data } = await db
+    .from('system_subscriptions')
+    .select('checkout_url,current_period_end,grace_until,plan_label,status')
+    .eq('user_id', userId)
+    .eq('barbershop_id', shop.id)
+    .order('created_at', { ascending:false })
+    .limit(1)
+    .maybeSingle();
+
+  const main = document.querySelector('.main');
+  if (!main) return;
+
+  const end = data?.current_period_end ? dateBR(data.current_period_end) : '';
+  const grace = data?.grace_until ? dateBR(data.grace_until) : '';
+  const alert = document.createElement('div');
+  alert.className = 'system-renewal-alert';
+  alert.innerHTML = `<span>Sua assinatura venceu${end ? ` em ${end}` : ''}. Renove até ${grace || 'o fim do prazo de tolerância'} para manter o acesso.</span>${data?.checkout_url ? `<a class="btn primary small" href="${escapeHtml(data.checkout_url)}" target="_blank">Renovar agora</a>` : ''}`;
+  main.prepend(alert);
 };
 
 

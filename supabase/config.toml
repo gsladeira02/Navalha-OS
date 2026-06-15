@@ -28,3 +28,7 @@ verify_jwt = true
 
 [functions.create-system-subscription]
 verify_jwt = false
+
+
+[functions.process-system-subscriptions]
+verify_jwt = false

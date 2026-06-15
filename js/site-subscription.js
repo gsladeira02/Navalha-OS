@@ -50,11 +50,22 @@ async function callPublicFunction(name, body){
   return data;
 }
 
+function getSelectedPlanCode(){
+  return document.querySelector('input[name="planCode"]:checked')?.value || 'monthly';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setupDocumentMask(document.getElementById('adminCpf'), 'cpf');
   setupDocumentMask(document.getElementById('barbershopCnpj'), 'cnpj');
   setupPhoneMask(document.getElementById('adminPhone'));
   setupPhoneMask(document.getElementById('barbershopPhone'));
+
+  document.querySelectorAll('.plan-choice input[name="planCode"]').forEach(input => {
+    input.addEventListener('change', () => {
+      document.querySelectorAll('.plan-choice').forEach(card => card.classList.remove('active'));
+      input.closest('.plan-choice')?.classList.add('active');
+    });
+  });
 
   const form = document.getElementById('systemSubscriptionForm');
   const btn = document.getElementById('subscribeBtn');
@@ -64,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
 
     const payload = {
+      planCode: getSelectedPlanCode(),
       adminName: document.getElementById('adminName').value.trim(),
       adminEmail: document.getElementById('adminEmail').value.trim().toLowerCase(),
       adminPhone: onlyDigits(document.getElementById('adminPhone').value),
@@ -71,8 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       adminPassword: document.getElementById('adminPassword').value,
       barbershopName: document.getElementById('barbershopName').value.trim(),
       barbershopCnpj: onlyDigits(document.getElementById('barbershopCnpj').value),
-      barbershopPhone: onlyDigits(document.getElementById('barbershopPhone').value),
-      paymentMethod: 'INFINITEPAY_CHECKOUT'
+      barbershopPhone: onlyDigits(document.getElementById('barbershopPhone').value)
     };
 
     if (payload.adminCpf.length !== 11) {
@@ -99,11 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const data = await callPublicFunction('create-system-subscription', payload);
-      const paymentUrl = data?.checkoutUrl || data?.invoiceUrl || data?.bankSlipUrl;
+      const paymentUrl = data?.checkoutUrl || data?.invoiceUrl;
 
       result.className = 'site-form-result success';
       result.innerHTML = paymentUrl
-        ? `Assinatura criada. <a href="${paymentUrl}" target="_blank" rel="noopener">Clique aqui para pagar pela InfinitePay</a>. Após o pagamento, seu acesso será liberado automaticamente.`
+        ? `Assinatura criada. <a href="${paymentUrl}" target="_blank" rel="noopener">Clique aqui para pagar</a>. Após o pagamento, seu acesso será liberado automaticamente.`
         : 'Assinatura criada. Aguarde a confirmação do pagamento para liberação do acesso.';
 
       if (paymentUrl) {

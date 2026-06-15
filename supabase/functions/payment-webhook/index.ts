@@ -6,6 +6,22 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const WEBHOOK_SECRET = Deno.env.get("PAYMENT_WEBHOOK_SECRET") || "";
 
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number) {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
+
+function addMonths(date: Date, months: number) {
+  const d = new Date(date);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  return d;
+}
+
 function mapPaymentStatus(event: string, asaasStatus: unknown) {
   const normalizedEvent = String(event || "");
   const normalizedStatus = String(asaasStatus || "").toUpperCase();
@@ -30,6 +46,51 @@ function getProvider(payload: any) {
   return "asaas";
 }
 
+async function activateSystemSubscriptions(supabase: any, subs: any[], payload: any) {
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  for (const sub of subs || []) {
+    const periodMonths = Number(sub.period_months || 1);
+    const baseDate = sub.current_period_end && new Date(`${sub.current_period_end}T00:00:00.000Z`) > now
+      ? new Date(`${sub.current_period_end}T00:00:00.000Z`)
+      : now;
+
+    const newEnd = addMonths(baseDate, periodMonths);
+    const graceUntil = addDays(newEnd, Number(sub.grace_days || 3));
+
+    await supabase
+      .from("system_subscriptions")
+      .update({
+        status: "active",
+        transaction_nsu: payload.transaction_nsu || payload.transactionNsu || sub.transaction_nsu || null,
+        external_invoice_slug: payload.invoice_slug || payload.slug || sub.external_invoice_slug || null,
+        receipt_url: payload.receipt_url || payload.receiptUrl || sub.receipt_url || null,
+        capture_method: payload.capture_method || payload.captureMethod || sub.capture_method || null,
+        paid_at: nowIso,
+        current_period_start: isoDate(baseDate),
+        current_period_end: isoDate(newEnd),
+        grace_until: isoDate(graceUntil),
+        next_due_date: isoDate(newEnd),
+        next_charge_at: isoDate(newEnd),
+        renewal_created_at: null,
+        updated_at: nowIso,
+      })
+      .eq("id", sub.id);
+
+    if (sub.barbershop_id) {
+      await supabase
+        .from("barbershops")
+        .update({
+          active: true,
+          subscription_status: "active",
+          updated_at: nowIso,
+        })
+        .eq("id", sub.barbershop_id);
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -49,11 +110,9 @@ serve(async (req) => {
       const orderNsu = payload.order_nsu || payload.orderNsu || null;
       const transactionNsu = payload.transaction_nsu || payload.transactionNsu || null;
       const invoiceSlug = payload.invoice_slug || payload.slug || null;
-      const receiptUrl = payload.receipt_url || payload.receiptUrl || null;
-      const captureMethod = payload.capture_method || payload.captureMethod || null;
 
       if (!orderNsu && !transactionNsu && !invoiceSlug) {
-        return jsonResponse({ ok: true, message: "Webhook InfinitePay recebido sem identificador." });
+        return jsonResponse({ ok: true, message: "Webhook recebido sem identificador." });
       }
 
       const filters = [
@@ -62,39 +121,19 @@ serve(async (req) => {
         invoiceSlug ? `external_invoice_slug.eq.${invoiceSlug}` : "",
       ].filter(Boolean).join(",");
 
-      const { data: updatedSystemSubscriptions, error: updateError } = await supabase
+      const { data: found, error } = await supabase
         .from("system_subscriptions")
-        .update({
-          status: "active",
-          asaas_status: "PAID",
-          transaction_nsu: transactionNsu,
-          external_invoice_slug: invoiceSlug,
-          receipt_url: receiptUrl,
-          capture_method: captureMethod,
-          paid_at: now,
-          updated_at: now,
-        })
-        .or(filters)
-        .select();
+        .select("*")
+        .or(filters);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-      const barbershopIds = (updatedSystemSubscriptions || []).map((s: any) => s.barbershop_id).filter(Boolean);
-      if (barbershopIds.length) {
-        await supabase
-          .from("barbershops")
-          .update({
-            active: true,
-            subscription_status: "active",
-            updated_at: now,
-          })
-          .in("id", barbershopIds);
-      }
+      await activateSystemSubscriptions(supabase, found || [], payload);
 
       return jsonResponse({
         ok: true,
         provider: "infinitepay",
-        systemSubscriptionsUpdated: updatedSystemSubscriptions?.length || 0,
+        systemSubscriptionsUpdated: found?.length || 0,
       });
     }
 
@@ -110,13 +149,13 @@ serve(async (req) => {
     const asaasStatus = payment.status || null;
     const status = mapPaymentStatus(event, asaasStatus);
 
-    let updatedCustomerPayments: any[] = [];
-    let updatedSystemSubscriptions: any[] = [];
-
     const customerFilter = [
       externalPaymentId ? `external_payment_id.eq.${externalPaymentId}` : "",
       externalSubscriptionId ? `external_subscription_id.eq.${externalSubscriptionId}` : "",
     ].filter(Boolean).join(",");
+
+    let updatedCustomerPayments: any[] = [];
+    let updatedSystemSubscriptions: any[] = [];
 
     if (customerFilter) {
       const { data } = await supabase
@@ -140,33 +179,21 @@ serve(async (req) => {
     if (customerFilter) {
       const { data } = await supabase
         .from("system_subscriptions")
-        .update({
-          status: status === "paid" ? "active" : status,
-          asaas_status: asaasStatus,
-          checkout_url: payment.invoiceUrl || payment.bankSlipUrl || null,
-          invoice_url: payment.invoiceUrl || null,
-          bank_slip_url: payment.bankSlipUrl || null,
-          external_payment_id: externalPaymentId || null,
-          paid_at: status === "paid" ? now : null,
-          updated_at: now,
-        })
-        .or(customerFilter)
-        .select();
+        .select("*")
+        .or(customerFilter);
 
       updatedSystemSubscriptions = data || [];
 
-      if (updatedSystemSubscriptions.length) {
-        const barbershopIds = updatedSystemSubscriptions.map((s: any) => s.barbershop_id).filter(Boolean);
-        if (barbershopIds.length) {
-          await supabase
-            .from("barbershops")
-            .update({
-              active: status === "paid",
-              subscription_status: status === "paid" ? "active" : status,
-              updated_at: now,
-            })
-            .in("id", barbershopIds);
-        }
+      if (status === "paid") {
+        await activateSystemSubscriptions(supabase, updatedSystemSubscriptions, payment);
+      } else if (updatedSystemSubscriptions.length) {
+        await supabase
+          .from("system_subscriptions")
+          .update({
+            status,
+            updated_at: now,
+          })
+          .or(customerFilter);
       }
     }
 

@@ -362,3 +362,27 @@ Configuração:
 
 Observação:
 A integração usa o Checkout da InfinitePay por link. A confirmação automática depende do webhook da InfinitePay.
+
+
+## Planos e recorrência do próprio sistema
+
+A página inicial agora mostra apenas os planos, sem exibir o nome do gateway:
+
+- Mensal: R$ 49,90 — cobrança a cada 30 dias;
+- Trimestral: 3x de R$ 44,90 — cobrança a cada 3 meses;
+- Semestral: 6x de R$ 39,90 — cobrança a cada 6 meses;
+- Anual: 12x de R$ 14,90 — cobrança a cada 12 meses.
+
+Regras de acesso:
+- ao pagar, a conta fica ativa até o fim do período contratado;
+- após o fim do período, a conta continua ativa por 3 dias com alerta de renovação;
+- se não pagar até o fim da tolerância, a barbearia é inativada;
+- ao inativar, os dados não são apagados;
+- quando pagar a renovação, o acesso volta automaticamente.
+
+Funções:
+- `create-system-subscription`: cria a primeira cobrança do plano escolhido;
+- `payment-webhook`: libera o acesso quando o pagamento é confirmado;
+- `process-system-subscriptions`: gera cobranças de renovação e bloqueia contas vencidas após a tolerância.
+
+Para automação real de renovação, chame `process-system-subscriptions` diariamente por cron.
