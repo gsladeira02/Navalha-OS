@@ -217,9 +217,20 @@ window.createPayment = async (subscriptionId) => {
     return;
   }
 
+  const sub = subscriptionById(subscriptionId);
+  const plan = planById(sub?.plan_id);
+  const customer = customerById(sub?.customer_id);
+
   try {
     showToast('Gerando cobrança recorrente...', 'info');
-    const data = await callSecureFunction('create-recurring-payment', { subscriptionId });
+    const data = await callSecureFunction('create-recurring-payment', {
+      subscriptionId,
+      barbershopId: activeShop.id,
+      customerId: sub?.customer_id || null,
+      planId: sub?.plan_id || null,
+      customerName: customer?.name || sub?.customer_name || null,
+      planName: plan?.name || sub?.plan_name || null
+    });
     showToast(data?.message || 'Cobrança criada com sucesso.', 'success');
     await loadAll();
   } catch (err) {

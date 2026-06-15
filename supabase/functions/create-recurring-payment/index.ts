@@ -12,14 +12,47 @@ serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const user = await getAuthedUser(supabase, req);
-    const { subscriptionId } = await req.json();
+    const body = await req.json();
+    const subscriptionId = String(body?.subscriptionId || "").trim();
 
-    const { data: subscription, error: subError } = await supabase
+    if (!subscriptionId || subscriptionId === "undefined" || subscriptionId === "null") {
+      throw new Error("ID da assinatura não foi enviado pela tela. Atualize a página e tente novamente.");
+    }
+
+    let { data: subscription, error: subError } = await supabase
       .from("customer_subscriptions")
       .select("*")
       .eq("id", subscriptionId)
-      .single();
-    if (subError || !subscription) throw new Error("Assinatura não encontrada.");
+      .maybeSingle();
+
+    if (subError) {
+      throw new Error(`Erro ao buscar assinatura: ${subError.message}`);
+    }
+
+    if (!subscription && body?.barbershopId && body?.customerId && body?.planId) {
+      const fallback = await supabase
+        .from("customer_subscriptions")
+        .select("*")
+        .eq("barbershop_id", body.barbershopId)
+        .eq("customer_id", body.customerId)
+        .eq("plan_id", body.planId)
+        .neq("status", "canceled")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!fallback.error && fallback.data) subscription = fallback.data;
+    }
+
+    if (!subscription) {
+      const { data: recent } = await supabase
+        .from("customer_subscriptions")
+        .select("id,barbershop_id,customer_id,plan_id,customer_name,plan_name,status,created_at")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      throw new Error(`Assinatura não encontrada. ID enviado: ${subscriptionId}. Dados enviados: ${JSON.stringify(body)}. Últimas assinaturas vistas pela função: ${JSON.stringify(recent || [])}`);
+    }
 
     const { data: shop } = await supabase
       .from("barbershops")
