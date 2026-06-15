@@ -43,6 +43,8 @@ serve(async (req) => {
         asaas_status: asaasStatus,
         status_checked_at: new Date().toISOString(),
         checkout_url: payment.invoiceUrl || payment.bankSlipUrl || null,
+        invoice_url: payment.invoiceUrl || null,
+        bank_slip_url: payment.bankSlipUrl || null,
         paid_at: status === "paid" ? new Date().toISOString() : null,
         external_payment_id: externalPaymentId || null,
       })

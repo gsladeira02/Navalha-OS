@@ -12,3 +12,7 @@ verify_jwt = false
 
 [functions.sync-payment-status]
 verify_jwt = true
+
+
+[functions.get-payment-share-data]
+verify_jwt = true

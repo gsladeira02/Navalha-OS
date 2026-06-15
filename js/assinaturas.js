@@ -79,6 +79,58 @@ function paymentStatusText(status){
   }[String(status || '').toLowerCase()] || status || '-';
 }
 
+
+function normalizeBrazilPhone(value){
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('55')) return digits;
+  return `55${digits}`;
+}
+
+function buildPaymentShareMessage({ payment, customer, plan, shareData }){
+  const shopName = activeShop?.name || 'barbearia';
+  const customerName = customer?.name || payment?.customer_name || 'cliente';
+  const planName = plan?.name || payment?.plan_name || 'serviço';
+  const amount = currency.format(Number(payment?.amount || 0));
+  const due = dateBR(payment?.due_date);
+  const method = paymentMethodLabel(payment?.payment_method || shareData?.billingType || 'PIX');
+
+  const lines = [
+    `Olá, ${customerName}!`,
+    '',
+    `Segue sua cobrança da ${shopName}:`,
+    `Plano/serviço: ${planName}`,
+    `Valor: ${amount}`,
+    `Vencimento: ${due}`,
+    `Forma de pagamento: ${method}`,
+  ];
+
+  const link = shareData?.invoiceUrl || shareData?.bankSlipUrl || payment?.checkout_url;
+  if (link) {
+    lines.push('', `Link para pagamento: ${link}`);
+  }
+
+  if (shareData?.bankSlipUrl) {
+    lines.push('', `Boleto: ${shareData.bankSlipUrl}`);
+  }
+
+  if (shareData?.pixPayload) {
+    lines.push('', 'Pix copia e cola:', shareData.pixPayload);
+  }
+
+  lines.push('', 'Qualquer dúvida, é só responder esta mensagem.');
+  return lines.join('\n');
+}
+
+function openWhatsAppToCustomer(phone, message){
+  const encoded = encodeURIComponent(message);
+  const normalizedPhone = normalizeBrazilPhone(phone);
+  const url = normalizedPhone
+    ? `https://wa.me/${normalizedPhone}?text=${encoded}`
+    : `https://wa.me/?text=${encoded}`;
+  window.open(url, '_blank');
+}
+
 function recurringLabel(item){
   const isRecurring = item?.is_recurring !== false;
   if (!isRecurring) return 'Não recorrente';
@@ -229,6 +281,7 @@ function renderPayments(){
         <td data-label="Status">${statusBadge(item.status)}${item.asaas_status ? `<br><small>Asaas: ${escapeHtml(item.asaas_status)}</small>` : ''}${item.status_checked_at ? `<br><small>Atualizado: ${new Date(item.status_checked_at).toLocaleString('pt-BR')}</small>` : ''}</td>
         <td data-label="Ações"><div class="actions">
           ${item.checkout_url ? `<a class="btn secondary small" href="${escapeHtml(item.checkout_url)}" target="_blank">Cobrança</a>` : ''}
+          <button class="btn primary small" onclick="sendPaymentWhatsApp('${item.id}')">WhatsApp</button>
           <button class="btn secondary small" onclick="syncPaymentStatus('${item.id}')">Atualizar status</button>
           ${!['paid','received','confirmed'].includes(String(item.status || '').toLowerCase()) ? `<button class="btn success small" onclick="markPaymentPaid('${item.id}')">Marcar pago</button>` : ''}
           <button class="btn primary small" onclick="createInvoiceFromPayment('${item.id}')">Nota</button>
@@ -300,6 +353,37 @@ window.createPayment = async (subscriptionId) => {
     await loadAll();
   } catch (err) {
     showToast(err.message || 'Não foi possível gerar a cobrança automática.', 'error');
+  }
+};
+
+window.sendPaymentWhatsApp = async (paymentId) => {
+  const payment = payments.find(p => p.id === paymentId);
+  if (!payment) {
+    showToast('Cobrança não encontrada na tela.', 'error');
+    return;
+  }
+
+  const sub = subscriptionById(payment.subscription_id);
+  const customer = customerById(payment.customer_id || sub?.customer_id);
+  const plan = planById(payment.plan_id || sub?.plan_id);
+
+  try {
+    showToast('Preparando mensagem para WhatsApp...', 'info');
+    const data = await callSecureFunction('get-payment-share-data', { paymentId });
+    const shareData = data?.share || {};
+    const message = buildPaymentShareMessage({ payment: data?.payment || payment, customer, plan, shareData });
+
+    if (shareData?.pixPayload) {
+      try { await navigator.clipboard.writeText(shareData.pixPayload); } catch (_) {}
+    }
+
+    openWhatsAppToCustomer(customer?.phone || payment?.customer_phone || '', message);
+    showToast(shareData?.pixPayload ? 'WhatsApp aberto. Pix copia e cola também foi copiado.' : 'WhatsApp aberto com o link da cobrança.', 'success');
+    await loadAll();
+  } catch (err) {
+    const fallbackMessage = buildPaymentShareMessage({ payment, customer, plan, shareData: { invoiceUrl: payment.checkout_url } });
+    openWhatsAppToCustomer(customer?.phone || payment?.customer_phone || '', fallbackMessage);
+    showToast(err.message || 'WhatsApp aberto com os dados disponíveis da cobrança.', 'error');
   }
 };
 

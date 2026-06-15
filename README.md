@@ -251,3 +251,17 @@ No primeiro login, além de trocar a senha, o usuário precisa preencher:
 - celular da barbearia.
 
 Esses dados são salvos na tabela `barbershops`. Rode o `sql/schema.sql` atualizado antes de testar.
+
+
+## WhatsApp das cobranças
+
+Na aba **Assinaturas > Pagamentos recorrentes**, cada cobrança agora possui o botão **WhatsApp**.
+
+Ao clicar:
+- o sistema consulta a cobrança no Asaas;
+- busca link de pagamento;
+- busca boleto, quando existir;
+- busca Pix copia e cola / QR Code Pix quando a cobrança for compatível;
+- abre o WhatsApp com a mensagem pronta para o cliente.
+
+O WhatsApp não permite anexar automaticamente imagem de QR Code via link `wa.me`, então o sistema envia o link e o Pix copia e cola no texto da mensagem.

@@ -24,6 +24,20 @@ async function getPaymentBySubscription(baseUrl: string, apiKey: string, subscri
   return Array.isArray(json?.data) ? json.data[0] || null : null;
 }
 
+async function getPixQrCode(baseUrl: string, apiKey: string, paymentId: string) {
+  try {
+    const res = await fetch(`${baseUrl}/payments/${encodeURIComponent(paymentId)}/pixQrCode`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", "access_token": apiKey },
+    });
+    const json = await res.json();
+    if (!res.ok) return null;
+    return json;
+  } catch (_) {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -32,7 +46,7 @@ serve(async (req) => {
     const user = await getAuthedUser(supabase, req);
     const { paymentId } = await req.json();
 
-    if (!paymentId) throw new Error("ID do pagamento não enviado.");
+    if (!paymentId) throw new Error("ID da cobrança não enviado.");
 
     const { data: payment, error: paymentError } = await supabase
       .from("subscription_payments")
@@ -40,8 +54,8 @@ serve(async (req) => {
       .eq("id", paymentId)
       .maybeSingle();
 
-    if (paymentError) throw new Error(`Erro ao buscar pagamento: ${paymentError.message}`);
-    if (!payment) throw new Error("Pagamento não encontrado.");
+    if (paymentError) throw new Error(`Erro ao buscar cobrança: ${paymentError.message}`);
+    if (!payment) throw new Error("Cobrança não encontrada.");
 
     const { data: shop } = await supabase
       .from("barbershops")
@@ -59,12 +73,12 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!integration?.payment_api_key) throw new Error("Configure a chave do gateway de pagamento.");
-    if (integration.payment_provider !== "asaas") throw new Error("Atualização automática pronta para Asaas.");
+    if (integration.payment_provider !== "asaas") throw new Error("Compartilhamento automático pronto para Asaas.");
 
     let asaasPayment = null;
 
     if (payment.external_payment_id) {
-      const res = await fetch(`${ASAAS_BASE_URL}/payments/${payment.external_payment_id}`, {
+      const res = await fetch(`${ASAAS_BASE_URL}/payments/${encodeURIComponent(payment.external_payment_id)}`, {
         method: "GET",
         headers: { "Content-Type": "application/json", "access_token": integration.payment_api_key },
       });
@@ -76,19 +90,31 @@ serve(async (req) => {
     }
 
     if (!asaasPayment) {
-      throw new Error("Não encontrei ID de cobrança no Asaas para atualizar este status.");
+      throw new Error("Não encontrei a cobrança no Asaas para compartilhar.");
     }
 
+    const billingType = String(asaasPayment.billingType || payment.payment_method || "").toUpperCase();
+    const pixQr = ["PIX", "BOLETO", "UNDEFINED"].includes(billingType)
+      ? await getPixQrCode(ASAAS_BASE_URL, integration.payment_api_key, asaasPayment.id)
+      : null;
+
+    const invoiceUrl = asaasPayment.invoiceUrl || payment.invoice_url || payment.checkout_url || null;
+    const bankSlipUrl = asaasPayment.bankSlipUrl || payment.bank_slip_url || null;
+    const pixPayload = pixQr?.payload || null;
+    const pixEncodedImage = pixQr?.encodedImage || pixQr?.encoded_image || null;
+
     const mappedStatus = mapAsaasPaymentStatus(asaasPayment.status);
-    const { data: updated, error: updateError } = await supabase
+    const { data: updated } = await supabase
       .from("subscription_payments")
       .update({
         status: mappedStatus,
         asaas_status: asaasPayment.status || null,
         external_payment_id: asaasPayment.id || payment.external_payment_id || null,
-        checkout_url: asaasPayment.invoiceUrl || asaasPayment.bankSlipUrl || payment.checkout_url || null,
-        invoice_url: asaasPayment.invoiceUrl || payment.invoice_url || null,
-        bank_slip_url: asaasPayment.bankSlipUrl || payment.bank_slip_url || null,
+        checkout_url: invoiceUrl || bankSlipUrl || payment.checkout_url || null,
+        invoice_url: invoiceUrl,
+        bank_slip_url: bankSlipUrl,
+        pix_payload: pixPayload,
+        pix_encoded_image: pixEncodedImage,
         status_checked_at: new Date().toISOString(),
         paid_at: mappedStatus === "paid" ? (asaasPayment.paymentDate ? `${asaasPayment.paymentDate}T00:00:00.000Z` : new Date().toISOString()) : payment.paid_at,
       })
@@ -96,12 +122,19 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (updateError) throw new Error(`Erro ao salvar status: ${updateError.message}`);
-
     return jsonResponse({
       ok: true,
-      payment: updated,
-      message: `Status atualizado: ${mappedStatus === "paid" ? "pago" : mappedStatus === "overdue" ? "atrasado" : mappedStatus === "canceled" ? "cancelado" : "em aberto"}.`,
+      payment: updated || payment,
+      share: {
+        billingType,
+        invoiceUrl,
+        bankSlipUrl,
+        pixPayload,
+        pixEncodedImage,
+        dueDate: asaasPayment.dueDate || payment.due_date,
+        status: mappedStatus,
+      },
+      message: "Dados da cobrança prontos para WhatsApp.",
     });
   } catch (err) {
     return jsonResponse({ error: err.message || "Erro inesperado." }, 400);

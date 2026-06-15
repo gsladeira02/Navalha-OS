@@ -598,3 +598,14 @@ add column if not exists setup_completed_at timestamptz;
 
 grant select, update on public.barbershops to authenticated;
 grant select, update on public.barbershops to service_role;
+
+
+-- Compartilhamento de cobranças por WhatsApp
+alter table public.subscription_payments
+add column if not exists invoice_url text,
+add column if not exists bank_slip_url text,
+add column if not exists pix_payload text,
+add column if not exists pix_encoded_image text;
+
+grant select, insert, update, delete on public.subscription_payments to authenticated;
+grant select, insert, update, delete on public.subscription_payments to service_role;
