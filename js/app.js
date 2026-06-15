@@ -12,6 +12,38 @@ window.activeShop = null;
 window.currentSessionUser = null;
 window.needsPasswordChange = (user) => !user?.user_metadata || user.user_metadata.must_change_password !== false;
 
+window.keepSelectedNavVisible = function(){
+  const nav = document.querySelector('.bottom-nav');
+  if (!nav) return;
+
+  const active = nav.querySelector('a.active') || nav.querySelector(`[data-nav="${location.pathname.split('/').pop().replace('.html','')}"]`);
+  if (!active) return;
+
+  const centerActive = () => {
+    const navRect = nav.getBoundingClientRect();
+    const itemRect = active.getBoundingClientRect();
+    const currentLeft = nav.scrollLeft;
+    const itemCenter = (itemRect.left - navRect.left) + currentLeft + (itemRect.width / 2);
+    const targetLeft = Math.max(0, itemCenter - (nav.clientWidth / 2));
+    nav.scrollTo({ left: targetLeft, behavior: 'auto' });
+    sessionStorage.setItem('navalhaos_bottom_nav_scroll_left', String(targetLeft));
+  };
+
+  requestAnimationFrame(() => requestAnimationFrame(centerActive));
+
+  nav.querySelectorAll('[data-nav]').forEach(link => {
+    link.addEventListener('click', () => {
+      sessionStorage.setItem('navalhaos_last_nav', link.dataset.nav || '');
+      sessionStorage.setItem('navalhaos_bottom_nav_scroll_left', String(nav.scrollLeft || 0));
+    });
+  });
+
+  nav.addEventListener('scroll', () => {
+    sessionStorage.setItem('navalhaos_bottom_nav_scroll_left', String(nav.scrollLeft || 0));
+  }, { passive: true });
+};
+
+
 window.requireAuth = async function(pageTitle, subtitle){
   const { data: { session } } = await db.auth.getSession();
   if (!session) {
@@ -46,6 +78,7 @@ window.requireAuth = async function(pageTitle, subtitle){
   document.querySelectorAll('[data-nav]').forEach(a => {
     if (a.dataset.nav === current) a.classList.add('active');
   });
+  keepSelectedNavVisible();
   await showSystemRenewalAlert(session.user.id, shop);
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.onclick = async () => { await db.auth.signOut(); location.href = 'login.html'; };

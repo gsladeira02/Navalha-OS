@@ -434,3 +434,11 @@ O endereço é salvo em:
 - `system_subscriptions.barbershop_address`.
 
 No link público `/agenda/slug-da-barbearia`, o endereço aparece abaixo do nome da barbearia. Se a barbearia usar unidades e a unidade selecionada tiver endereço próprio, o endereço da unidade aparece no lugar do endereço principal.
+
+
+## Aba selecionada no menu inferior
+
+Correção aplicada:
+- ao abrir uma tela, o menu inferior rola automaticamente até a aba selecionada;
+- ao navegar para abas mais à direita, o menu não volta visualmente para a primeira opção;
+- a aba atual fica visível e centralizada sempre que possível.

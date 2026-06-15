@@ -90,7 +90,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
 .sidebar-footer .btn{padding:10px 14px;font-size:12px;border-radius:12px;min-height:40px}
 .nav{display:none!important}
 
-.bottom-nav{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:9999;display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(8,18,31,.92);border:1px solid rgba(92,132,188,.22);border-radius:24px;padding:9px;box-shadow:0 20px 50px rgba(0,0,0,.48);backdrop-filter:blur(20px)}
+.bottom-nav{scroll-padding-inline:14px;position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:9999;display:flex;flex-direction:row;flex-wrap:nowrap;gap:8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;background:rgba(8,18,31,.92);border:1px solid rgba(92,132,188,.22);border-radius:24px;padding:9px;box-shadow:0 20px 50px rgba(0,0,0,.48);backdrop-filter:blur(20px)}
 .bottom-nav::-webkit-scrollbar{display:none}
 .bottom-nav a{flex:0 0 68px;min-width:68px;min-height:58px;padding:7px 4px;border-radius:16px;color:#dce8ff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;font-size:10px;line-height:1.05;font-weight:800;position:relative}
 .bottom-nav a.active,.bottom-nav a:hover{background:linear-gradient(180deg,rgba(31,95,255,.24),rgba(217,47,61,.12));color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
@@ -427,3 +427,7 @@ select:focus{
 /* Endereço no link público de agenda */
 .booking-address{margin:10px auto 0;max-width:520px;color:#fff;font-weight:800;font-size:14px;line-height:1.45;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
 .booking-address.hidden{display:none}
+
+
+/* Mantém a aba selecionada visível no menu inferior */
+.bottom-nav a.active{scroll-snap-align:center}
