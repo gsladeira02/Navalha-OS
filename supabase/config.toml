@@ -24,3 +24,7 @@ verify_jwt = true
 
 [functions.cancel-subscription]
 verify_jwt = true
+
+
+[functions.create-system-subscription]
+verify_jwt = false

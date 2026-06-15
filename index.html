@@ -3,8 +3,142 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>NavalhaOS</title>
-  <script>window.location.href='login.html';</script>
+  <title>NavalhaOS | Sistema para Barbearias</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body></body>
+<body class="site-page">
+  <header class="site-header">
+    <a class="site-brand" href="#inicio">
+      <img src="assets/logo.png" alt="NavalhaOS">
+      <span>NavalhaOS</span>
+    </a>
+    <nav class="site-nav">
+      <a href="#beneficios">Benefícios</a>
+      <a href="#assinar">Assinar</a>
+      <a class="btn secondary small" href="login.html">Entrar</a>
+    </nav>
+  </header>
+
+  <main id="inicio" class="site-main">
+    <section class="site-hero">
+      <div class="site-hero-copy">
+        <span class="site-kicker">Sistema completo para barbearias</span>
+        <h1>Agenda, clientes, caixa, comissões e cobranças em um só lugar.</h1>
+        <p>O NavalhaOS organiza a operação da barbearia no celular, com agenda online, link de agendamento e controle financeiro.</p>
+        <div class="site-actions">
+          <a class="btn primary" href="#assinar">Assinar agora</a>
+          <a class="btn outline" href="login.html">Já sou cliente</a>
+        </div>
+      </div>
+      <div class="site-hero-card">
+        <div class="site-price-tag">Plano completo</div>
+        <strong id="sitePlanPrice">R$ 14,90/mês</strong>
+        <span>Gateway definido: InfinitePay</span>
+        <ul>
+          <li>Agenda online da barbearia</li>
+          <li>Clientes, barbeiros e serviços</li>
+          <li>Caixa e comissões</li>
+          <li>Cobranças e status de pagamento</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="beneficios" class="site-benefits">
+      <div class="site-benefit-card">
+        <strong>Agenda online</strong>
+        <span>Cliente agenda pelo link público da barbearia.</span>
+      </div>
+      <div class="site-benefit-card">
+        <strong>Cobranças</strong>
+        <span>Controle cobranças, status, WhatsApp e cancelamentos.</span>
+      </div>
+      <div class="site-benefit-card">
+        <strong>Gestão diária</strong>
+        <span>Veja faturamento, atendimentos, clientes e equipe.</span>
+      </div>
+    </section>
+
+    <section id="assinar" class="site-subscribe">
+      <div class="site-subscribe-info">
+        <span class="site-kicker">Assinatura do sistema</span>
+        <h2>Assine o NavalhaOS</h2>
+        <p>Preencha os dados, crie sua senha e gere a cobrança pela InfinitePay. Após a confirmação do pagamento pelo webhook, o acesso da barbearia será liberado automaticamente.</p>
+        <div class="site-gateway-box">
+          <strong>Gateway de pagamento definido</strong>
+          <span>InfinitePay — Pix ou cartão de crédito no checkout.</span>
+        </div>
+      </div>
+
+      <form id="systemSubscriptionForm" class="site-subscribe-form form">
+        <h3>Dados do administrador</h3>
+        <div class="field">
+          <label>Nome do administrador</label>
+          <input id="adminName" required placeholder="Ex: João Silva">
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>E-mail de acesso</label>
+            <input id="adminEmail" type="email" required placeholder="cliente@barbearia.com">
+          </div>
+          <div class="field">
+            <label>Celular do administrador</label>
+            <input id="adminPhone" required inputmode="tel" placeholder="(27) 99999-9999">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>CPF do administrador</label>
+            <input id="adminCpf" required inputmode="numeric" placeholder="000.000.000-00">
+          </div>
+          <div class="field">
+            <label>Senha de acesso</label>
+            <input id="adminPassword" type="password" required minlength="6" placeholder="Crie uma senha">
+          </div>
+        </div>
+
+        <h3>Dados da barbearia</h3>
+        <div class="field">
+          <label>Nome da barbearia</label>
+          <input id="barbershopName" required placeholder="Ex: Barbearia Navalha">
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>CNPJ da barbearia</label>
+            <input id="barbershopCnpj" required inputmode="numeric" placeholder="00.000.000/0001-00">
+          </div>
+          <div class="field">
+            <label>Celular da barbearia</label>
+            <input id="barbershopPhone" required inputmode="tel" placeholder="(27) 99999-9999">
+          </div>
+        </div>
+
+        <h3>Pagamento</h3>
+        <div class="row">
+          <div class="field">
+            <label>Gateway</label>
+            <input id="paymentMethod" value="InfinitePay Checkout" readonly>
+          </div>
+          <div class="field">
+            <label>Plano</label>
+            <input id="planName" value="NavalhaOS Completo" readonly>
+          </div>
+        </div>
+
+        <button id="subscribeBtn" class="btn primary full" type="submit">Gerar cobrança e assinar</button>
+        <p id="subscriptionResult" class="site-form-result"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>NavalhaOS</span>
+    <a href="privacidade.html">Privacidade</a>
+    <a href="termos.html">Termos</a>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/site-subscription.js"></script>
+</body>
 </html>

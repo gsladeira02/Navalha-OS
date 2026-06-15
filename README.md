@@ -318,3 +318,47 @@ Agora existem duas funções novas:
 - `cancel-subscription`: cancela uma assinatura no Asaas e marca a assinatura/cobranças pendentes como canceladas no NavalhaOS.
 
 Na tela de pagamentos, o botão **Cancelar cobrança** chama o Asaas antes de atualizar o status local.
+
+
+## Assinatura do próprio sistema
+
+A página inicial (`index.html`) agora possui uma área para o cliente assinar o NavalhaOS.
+
+Gateway definido: **Asaas**.
+
+Fluxo:
+1. Cliente preenche dados do administrador, barbearia e senha.
+2. O sistema cria usuário no Supabase.
+3. O sistema cria a barbearia como `active = false` e `subscription_status = pending`.
+4. A função `create-system-subscription` cria a assinatura no Asaas.
+5. O cliente paga pelo link gerado.
+6. O webhook `payment-webhook` recebe a confirmação e libera a barbearia:
+   - `active = true`
+   - `subscription_status = active`
+
+Antes de testar:
+- rode o `sql/schema.sql`;
+- rode `CONFIGURAR_ASSINATURA_SISTEMA_WINDOWS.bat`;
+- configure o webhook do Asaas apontando para `payment-webhook`.
+
+
+## InfinitePay como gateway do sistema
+
+A venda da assinatura do próprio NavalhaOS agora usa **InfinitePay Checkout**.
+
+Fluxo:
+1. Cliente preenche o formulário na página inicial.
+2. O sistema cria usuário e barbearia pendente.
+3. A função `create-system-subscription` cria um link de pagamento na InfinitePay.
+4. O cliente paga no checkout da InfinitePay.
+5. O webhook `payment-webhook` recebe o pagamento aprovado e libera a barbearia:
+   - `active = true`
+   - `subscription_status = active`
+
+Configuração:
+1. Rode o `sql/schema.sql`.
+2. Rode `CONFIGURAR_INFINITEPAY_SISTEMA_WINDOWS.bat`.
+3. Suba o ZIP na Vercel.
+
+Observação:
+A integração usa o Checkout da InfinitePay por link. A confirmação automática depende do webhook da InfinitePay.

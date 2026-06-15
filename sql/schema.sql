@@ -617,3 +617,129 @@ add column if not exists canceled_at timestamptz;
 
 grant select, insert, update, delete on public.subscription_payments to authenticated;
 grant select, insert, update, delete on public.subscription_payments to service_role;
+
+
+-- Assinatura do próprio NavalhaOS pelos clientes
+alter table public.barbershops
+add column if not exists admin_name text,
+add column if not exists admin_cpf text,
+add column if not exists admin_phone text,
+add column if not exists cnpj text,
+add column if not exists setup_completed boolean not null default false,
+add column if not exists setup_completed_at timestamptz;
+
+create table if not exists public.system_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  barbershop_id uuid references public.barbershops(id) on delete set null,
+  admin_name text not null,
+  admin_email text not null,
+  admin_phone text,
+  admin_cpf text,
+  barbershop_name text not null,
+  barbershop_cnpj text,
+  barbershop_phone text,
+  plan_name text not null default 'NavalhaOS Completo',
+  amount numeric(10,2) not null default 14.90,
+  cycle text not null default 'MONTHLY',
+  payment_method text not null default 'PIX',
+  status text not null default 'pending',
+  external_provider text default 'asaas',
+  external_customer_id text,
+  external_subscription_id text,
+  external_payment_id text,
+  checkout_url text,
+  invoice_url text,
+  bank_slip_url text,
+  asaas_status text,
+  next_due_date date,
+  paid_at timestamptz,
+  canceled_at timestamptz,
+  updated_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+alter table public.system_subscriptions enable row level security;
+
+drop policy if exists "system_subscriptions_owner_read" on public.system_subscriptions;
+create policy "system_subscriptions_owner_read" on public.system_subscriptions
+for select to authenticated
+using (user_id = auth.uid());
+
+grant usage on schema public to authenticated, anon, service_role;
+grant select on public.system_subscriptions to authenticated;
+grant select, insert, update, delete on public.system_subscriptions to service_role;
+grant select, insert, update on public.barbershops to service_role;
+grant usage, select on all sequences in schema public to service_role;
+
+
+-- Assinatura do próprio NavalhaOS via InfinitePay
+alter table public.barbershops
+add column if not exists admin_name text,
+add column if not exists admin_cpf text,
+add column if not exists admin_phone text,
+add column if not exists cnpj text,
+add column if not exists setup_completed boolean not null default false,
+add column if not exists setup_completed_at timestamptz;
+
+create table if not exists public.system_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  barbershop_id uuid references public.barbershops(id) on delete set null,
+  admin_name text not null,
+  admin_email text not null,
+  admin_phone text,
+  admin_cpf text,
+  barbershop_name text not null,
+  barbershop_cnpj text,
+  barbershop_phone text,
+  plan_name text not null default 'NavalhaOS Completo',
+  amount numeric(10,2) not null default 14.90,
+  cycle text not null default 'MONTHLY',
+  payment_method text not null default 'INFINITEPAY_CHECKOUT',
+  status text not null default 'pending',
+  external_provider text default 'infinitepay',
+  external_customer_id text,
+  external_subscription_id text,
+  external_payment_id text,
+  external_invoice_slug text,
+  order_nsu text,
+  transaction_nsu text,
+  receipt_url text,
+  capture_method text,
+  checkout_url text,
+  invoice_url text,
+  bank_slip_url text,
+  asaas_status text,
+  infinitepay_payload jsonb,
+  next_due_date date,
+  paid_at timestamptz,
+  canceled_at timestamptz,
+  updated_at timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+alter table public.system_subscriptions
+add column if not exists external_invoice_slug text,
+add column if not exists order_nsu text,
+add column if not exists transaction_nsu text,
+add column if not exists receipt_url text,
+add column if not exists capture_method text,
+add column if not exists infinitepay_payload jsonb;
+
+create unique index if not exists system_subscriptions_order_nsu_idx
+on public.system_subscriptions(order_nsu)
+where order_nsu is not null;
+
+alter table public.system_subscriptions enable row level security;
+
+drop policy if exists "system_subscriptions_owner_read" on public.system_subscriptions;
+create policy "system_subscriptions_owner_read" on public.system_subscriptions
+for select to authenticated
+using (user_id = auth.uid());
+
+grant usage on schema public to authenticated, anon, service_role;
+grant select on public.system_subscriptions to authenticated;
+grant select, insert, update, delete on public.system_subscriptions to service_role;
+grant select, insert, update on public.barbershops to service_role;
+grant usage, select on all sequences in schema public to service_role;
