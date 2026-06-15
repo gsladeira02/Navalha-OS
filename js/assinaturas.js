@@ -283,6 +283,7 @@ function renderPayments(){
         <td data-label="Ações"><div class="actions">
           <button class="btn primary small" onclick="sendPaymentWhatsApp('${item.id}')">Enviar por WhatsApp</button>
           <button class="btn secondary small" onclick="syncPaymentStatus('${item.id}')">Atualizar status</button>
+          ${!['paid','received','confirmed','canceled','cancelled','deleted'].includes(String(item.status || '').toLowerCase()) ? `<button class="btn danger small" onclick="cancelPayment('${item.id}')">Cancelar cobrança</button>` : ''}
           ${!['paid','received','confirmed'].includes(String(item.status || '').toLowerCase()) ? `<button class="btn success small" onclick="markPaymentPaid('${item.id}')">Marcar pago</button>` : ''}
           <button class="btn primary small" onclick="createInvoiceFromPayment('${item.id}')">Nota</button>
         </div></td>
@@ -320,10 +321,16 @@ window.removePlan = async (id) => {
 };
 
 window.cancelSubscription = async (id) => {
-  if (!confirm('Cancelar assinatura?')) return;
-  await db.from('customer_subscriptions').update({ status:'canceled', canceled_at: new Date().toISOString() }).eq('id', id).eq('barbershop_id', activeShop.id);
-  showToast('Assinatura cancelada.', 'success');
-  await loadAll();
+  if (!confirm('Cancelar esta assinatura? Se ela já existir no Asaas, as cobranças pendentes/vencidas da assinatura também serão canceladas.')) return;
+
+  try {
+    showToast('Cancelando assinatura no Asaas...', 'info');
+    const data = await callSecureFunction('cancel-subscription', { subscriptionId: id });
+    showToast(data?.message || 'Assinatura cancelada.', 'success');
+    await loadAll();
+  } catch (err) {
+    showToast(err.message || 'Não foi possível cancelar a assinatura.', 'error');
+  }
 };
 
 window.createPayment = async (subscriptionId) => {
@@ -436,6 +443,30 @@ window.sendPaymentWhatsApp = async (paymentId) => {
     } catch (fallbackErr) {
       showToast(err.message || fallbackErr.message || 'Não foi possível montar a mensagem com os dados reais da cobrança.', 'error');
     }
+  }
+};
+
+window.cancelPayment = async (paymentId) => {
+  const payment = payments.find(p => p.id === paymentId);
+  if (!payment) {
+    showToast('Cobrança não encontrada na tela.', 'error');
+    return;
+  }
+
+  if (['paid','received','confirmed'].includes(String(payment.status || '').toLowerCase())) {
+    showToast('Cobrança paga não deve ser cancelada pelo sistema.', 'error');
+    return;
+  }
+
+  if (!confirm('Cancelar esta cobrança? Ela será cancelada de fato no Asaas quando houver ID externo.')) return;
+
+  try {
+    showToast('Cancelando cobrança no Asaas...', 'info');
+    const data = await callSecureFunction('cancel-payment', { paymentId });
+    showToast(data?.message || 'Cobrança cancelada.', 'success');
+    await loadAll();
+  } catch (err) {
+    showToast(err.message || 'Não foi possível cancelar a cobrança.', 'error');
   }
 };
 

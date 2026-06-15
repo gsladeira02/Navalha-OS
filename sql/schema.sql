@@ -609,3 +609,11 @@ add column if not exists pix_encoded_image text;
 
 grant select, insert, update, delete on public.subscription_payments to authenticated;
 grant select, insert, update, delete on public.subscription_payments to service_role;
+
+
+-- Cancelamento real de cobranças no Asaas
+alter table public.subscription_payments
+add column if not exists canceled_at timestamptz;
+
+grant select, insert, update, delete on public.subscription_payments to authenticated;
+grant select, insert, update, delete on public.subscription_payments to service_role;

@@ -308,3 +308,13 @@ Quando a assinatura já tiver uma cobrança gerada, o botão abre direto o Whats
 - valor;
 - vencimento;
 - link/boleto/Pix.
+
+
+## Cancelamento real no Asaas
+
+Agora existem duas funções novas:
+
+- `cancel-payment`: cancela uma cobrança específica no Asaas e marca como cancelada no NavalhaOS;
+- `cancel-subscription`: cancela uma assinatura no Asaas e marca a assinatura/cobranças pendentes como canceladas no NavalhaOS.
+
+Na tela de pagamentos, o botão **Cancelar cobrança** chama o Asaas antes de atualizar o status local.
