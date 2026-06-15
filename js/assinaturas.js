@@ -88,37 +88,30 @@ function normalizeBrazilPhone(value){
 }
 
 function buildPaymentShareMessage({ payment, customer, plan, shareData }){
-  const shopName = activeShop?.name || 'barbearia';
   const customerName = customer?.name || payment?.customer_name || 'cliente';
-  const planName = plan?.name || payment?.plan_name || 'serviço';
+  const planName = plan?.name || payment?.plan_name || 'plano';
   const amount = currency.format(Number(payment?.amount || 0));
-  const due = dateBR(payment?.due_date);
-  const method = paymentMethodLabel(payment?.payment_method || shareData?.billingType || 'PIX');
+  const due = dateBR(payment?.due_date || shareData?.dueDate);
+
+  const hasBoleto = Boolean(shareData?.bankSlipUrl || payment?.bank_slip_url);
+  const hasPix = Boolean(shareData?.pixPayload || payment?.pix_payload);
+  const tipo = hasBoleto ? 'boleto' : hasPix ? 'qrcode' : 'link';
+
+  const paymentLink = shareData?.invoiceUrl || shareData?.bankSlipUrl || payment?.invoice_url || payment?.bank_slip_url || payment?.checkout_url;
+  const pixPayload = shareData?.pixPayload || payment?.pix_payload;
 
   const lines = [
-    `Olá, ${customerName}!`,
-    '',
-    `Segue sua cobrança da ${shopName}:`,
-    `Plano/serviço: ${planName}`,
-    `Valor: ${amount}`,
-    `Vencimento: ${due}`,
-    `Forma de pagamento: ${method}`,
+    `Olá ${customerName}, este é o ${tipo} para pagamento do seu ${planName} no valor de ${amount} com vencimento em ${due}.`
   ];
 
-  const link = shareData?.invoiceUrl || shareData?.bankSlipUrl || payment?.checkout_url;
-  if (link) {
-    lines.push('', `Link para pagamento: ${link}`);
+  if (paymentLink) {
+    lines.push('', paymentLink);
   }
 
-  if (shareData?.bankSlipUrl) {
-    lines.push('', `Boleto: ${shareData.bankSlipUrl}`);
+  if (pixPayload) {
+    lines.push('', 'Pix copia e cola:', pixPayload);
   }
 
-  if (shareData?.pixPayload) {
-    lines.push('', 'Pix copia e cola:', shareData.pixPayload);
-  }
-
-  lines.push('', 'Qualquer dúvida, é só responder esta mensagem.');
   return lines.join('\n');
 }
 
@@ -280,8 +273,7 @@ function renderPayments(){
         <td data-label="Valor">${currency.format(Number(item.amount || 0))}</td>
         <td data-label="Status">${statusBadge(item.status)}${item.asaas_status ? `<br><small>Asaas: ${escapeHtml(item.asaas_status)}</small>` : ''}${item.status_checked_at ? `<br><small>Atualizado: ${new Date(item.status_checked_at).toLocaleString('pt-BR')}</small>` : ''}</td>
         <td data-label="Ações"><div class="actions">
-          ${item.checkout_url ? `<a class="btn secondary small" href="${escapeHtml(item.checkout_url)}" target="_blank">Cobrança</a>` : ''}
-          <button class="btn primary small" onclick="sendPaymentWhatsApp('${item.id}')">WhatsApp</button>
+          <button class="btn primary small" onclick="sendPaymentWhatsApp('${item.id}')">Enviar por WhatsApp</button>
           <button class="btn secondary small" onclick="syncPaymentStatus('${item.id}')">Atualizar status</button>
           ${!['paid','received','confirmed'].includes(String(item.status || '').toLowerCase()) ? `<button class="btn success small" onclick="markPaymentPaid('${item.id}')">Marcar pago</button>` : ''}
           <button class="btn primary small" onclick="createInvoiceFromPayment('${item.id}')">Nota</button>
@@ -378,10 +370,10 @@ window.sendPaymentWhatsApp = async (paymentId) => {
     }
 
     openWhatsAppToCustomer(customer?.phone || payment?.customer_phone || '', message);
-    showToast(shareData?.pixPayload ? 'WhatsApp aberto. Pix copia e cola também foi copiado.' : 'WhatsApp aberto com o link da cobrança.', 'success');
+    showToast(shareData?.pixPayload ? 'WhatsApp aberto com a mensagem pronta. Pix copia e cola também foi copiado.' : 'WhatsApp aberto com a mensagem pronta.', 'success');
     await loadAll();
   } catch (err) {
-    const fallbackMessage = buildPaymentShareMessage({ payment, customer, plan, shareData: { invoiceUrl: payment.checkout_url } });
+    const fallbackMessage = buildPaymentShareMessage({ payment, customer, plan, shareData: { invoiceUrl: payment.invoice_url || payment.bank_slip_url || payment.checkout_url, pixPayload: payment.pix_payload, dueDate: payment.due_date } });
     openWhatsAppToCustomer(customer?.phone || payment?.customer_phone || '', fallbackMessage);
     showToast(err.message || 'WhatsApp aberto com os dados disponíveis da cobrança.', 'error');
   }

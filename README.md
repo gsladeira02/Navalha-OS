@@ -265,3 +265,20 @@ Ao clicar:
 - abre o WhatsApp com a mensagem pronta para o cliente.
 
 O WhatsApp não permite anexar automaticamente imagem de QR Code via link `wa.me`, então o sistema envia o link e o Pix copia e cola no texto da mensagem.
+
+
+## Mensagem padrão do WhatsApp
+
+Na lista de cobranças, o botão de link foi substituído por **Enviar por WhatsApp**.
+
+Mensagem gerada:
+"Olá Cliente, este é o link/qrcode/boleto para pagamento do seu Plano no valor de R$ com vencimento em DD/MM/AAAA."
+
+O sistema completa automaticamente:
+- nome do cliente;
+- tipo de envio: link, qrcode ou boleto;
+- nome do plano;
+- valor;
+- vencimento;
+- link de pagamento;
+- Pix copia e cola, quando existir.
