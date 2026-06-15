@@ -325,7 +325,7 @@ window.removeInvoice = async (id) => {
       status: 'active',
       start_date: document.getElementById('subscription_start').value,
       next_billing_date: document.getElementById('subscription_next_billing').value,
-      checkout_url: document.getElementById('subscription_checkout_url').value.trim() || null
+      checkout_url: null
     });
 
     if (error) {
@@ -336,7 +336,7 @@ window.removeInvoice = async (id) => {
     e.target.reset();
     document.getElementById('subscription_start').value = todayISO();
     document.getElementById('subscription_next_billing').value = todayISO();
-    showToast('Assinatura ativada.', 'success');
+    showToast('Assinatura ativada. Agora clique em Gerar cobrança para criar o link no Asaas.', 'success');
     await loadAll();
   });
 })();

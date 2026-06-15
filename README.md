@@ -160,3 +160,15 @@ supabase/README_BACKEND.md
 ```
 
 Importante: as chaves de API devem ser configuradas como secrets no Supabase e/ou cadastradas no módulo de integrações da barbearia. Para produção, revise criptografia/armazenamento seguro dos tokens por barbearia.
+
+
+## Ajuste no fluxo de assinatura
+
+O campo manual de link Asaas foi removido da criação de assinatura. Agora o fluxo correto é:
+
+1. criar cliente;
+2. criar plano;
+3. criar assinatura;
+4. clicar em **Gerar cobrança**.
+
+A Edge Function `create-recurring-payment` cria a assinatura no Asaas e salva o link automaticamente no sistema.
