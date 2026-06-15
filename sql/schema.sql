@@ -559,3 +559,20 @@ add column if not exists error_message text;
 
 grant select, insert, update, delete on public.customers to authenticated;
 grant select, insert, update, delete on public.customers to service_role;
+
+
+-- Métodos de pagamento e recorrência configurável
+alter table public.subscription_plans
+add column if not exists payment_method text not null default 'PIX',
+add column if not exists is_recurring boolean not null default true,
+add column if not exists interval_days integer default 30;
+
+alter table public.customer_subscriptions
+add column if not exists payment_method text default 'PIX',
+add column if not exists is_recurring boolean not null default true,
+add column if not exists interval_days integer default 30;
+
+alter table public.subscription_payments
+add column if not exists payment_method text default 'PIX',
+add column if not exists is_recurring boolean default true,
+add column if not exists interval_days integer;

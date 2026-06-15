@@ -199,3 +199,15 @@ A tela de clientes agora possui:
 - botão de editar cliente.
 
 O Asaas exige CPF/CNPJ para criar cobrança recorrente. Depois de atualizar o site, edite o cliente usado na assinatura e preencha o CPF/CNPJ antes de clicar em **Gerar cobrança**.
+
+
+## Método de pagamento e recorrência
+
+Na aba **Assinaturas**, o cadastro de plano/cobrança agora permite escolher:
+
+- método de pagamento: Pix, crédito, débito ou boleto;
+- se a cobrança é recorrente ou não;
+- dias entre cobranças quando for recorrente.
+
+Para recorrência automática via Asaas, use intervalos compatíveis com o Asaas:
+7, 14, 30, 90, 180 ou 365 dias.

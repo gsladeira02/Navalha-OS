@@ -10,6 +10,25 @@ function onlyDigits(value: unknown) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function methodToBillingType(value: unknown) {
+  const method = String(value || "PIX").toUpperCase();
+  if (method === "PIX") return "PIX";
+  if (method === "CREDIT_CARD") return "CREDIT_CARD";
+  if (method === "DEBIT_CARD") return "DEBIT_CARD";
+  if (method === "BOLETO") return "BOLETO";
+  return "PIX";
+}
+
+function intervalDaysToCycle(days: number) {
+  if (days === 7) return "WEEKLY";
+  if (days === 14) return "BIWEEKLY";
+  if (days === 30) return "MONTHLY";
+  if (days === 90) return "QUARTERLY";
+  if (days === 180) return "SEMIANNUALLY";
+  if (days === 365) return "YEARLY";
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -104,8 +123,74 @@ serve(async (req) => {
     }
 
     const dueDate = subscription.next_billing_date || new Date().toISOString().slice(0, 10);
+    const paymentMethod = String(subscription.payment_method || plan.payment_method || body?.paymentMethod || "PIX").toUpperCase();
+    const billingType = methodToBillingType(paymentMethod);
+    const isRecurring = subscription.is_recurring !== false && plan.is_recurring !== false && body?.isRecurring !== false;
+    const intervalDays = Number(subscription.interval_days || plan.interval_days || body?.intervalDays || 30);
 
-    const subRes = await fetch(`${ASAAS_BASE_URL}/subscriptions`, {
+    if (isRecurring) {
+      const cycle = intervalDaysToCycle(intervalDays);
+      if (!cycle) {
+        throw new Error("Para recorrência automática no Asaas, use 7, 14, 30, 90, 180 ou 365 dias entre cobranças.");
+      }
+
+      const subRes = await fetch(`${ASAAS_BASE_URL}/subscriptions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "access_token": integration.payment_api_key,
+        },
+        body: JSON.stringify({
+          customer: customerExternalId,
+          billingType,
+          value: Number(plan.price || 0),
+          nextDueDate: dueDate,
+          cycle,
+          description: `Assinatura ${plan.name} - ${shop.name}`,
+        }),
+      });
+
+      const subJson = await subRes.json();
+      if (!subRes.ok) throw new Error(subJson?.errors?.[0]?.description || "Erro ao criar assinatura no Asaas.");
+
+      await supabase
+        .from("customer_subscriptions")
+        .update({
+          external_provider: "asaas",
+          external_subscription_id: subJson.id,
+          checkout_url: subJson.invoiceUrl || subJson.bankSlipUrl || subscription.checkout_url || null,
+          payment_method: billingType,
+          is_recurring: true,
+          interval_days: intervalDays,
+        })
+        .eq("id", subscription.id);
+
+      const { data: payment } = await supabase
+        .from("subscription_payments")
+        .insert({
+          barbershop_id: shop.id,
+          subscription_id: subscription.id,
+          customer_id: customer.id,
+          plan_id: plan.id,
+          customer_name: customer.name,
+          plan_name: plan.name,
+          amount: Number(plan.price || 0),
+          due_date: dueDate,
+          status: "pending",
+          checkout_url: subJson.invoiceUrl || subJson.bankSlipUrl || null,
+          payment_method: billingType,
+          is_recurring: true,
+          interval_days: intervalDays,
+          external_provider: "asaas",
+          external_subscription_id: subJson.id,
+        })
+        .select()
+        .single();
+
+      return jsonResponse({ ok: true, payment, message: "Assinatura recorrente criada no Asaas." });
+    }
+
+    const payRes = await fetch(`${ASAAS_BASE_URL}/payments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -113,23 +198,24 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         customer: customerExternalId,
-        billingType: "UNDEFINED",
+        billingType,
         value: Number(plan.price || 0),
-        nextDueDate: dueDate,
-        cycle: "MONTHLY",
-        description: `Assinatura ${plan.name} - ${shop.name}`,
+        dueDate,
+        description: `Cobrança ${plan.name} - ${shop.name}`,
       }),
     });
 
-    const subJson = await subRes.json();
-    if (!subRes.ok) throw new Error(subJson?.errors?.[0]?.description || "Erro ao criar assinatura no Asaas.");
+    const payJson = await payRes.json();
+    if (!payRes.ok) throw new Error(payJson?.errors?.[0]?.description || "Erro ao criar cobrança no Asaas.");
 
     await supabase
       .from("customer_subscriptions")
       .update({
         external_provider: "asaas",
-        external_subscription_id: subJson.id,
-        checkout_url: subJson.invoiceUrl || subJson.bankSlipUrl || subscription.checkout_url || null,
+        checkout_url: payJson.invoiceUrl || payJson.bankSlipUrl || null,
+        payment_method: billingType,
+        is_recurring: false,
+        interval_days: null,
       })
       .eq("id", subscription.id);
 
@@ -145,14 +231,17 @@ serve(async (req) => {
         amount: Number(plan.price || 0),
         due_date: dueDate,
         status: "pending",
-        checkout_url: subJson.invoiceUrl || subJson.bankSlipUrl || null,
+        checkout_url: payJson.invoiceUrl || payJson.bankSlipUrl || null,
+        payment_method: billingType,
+        is_recurring: false,
+        interval_days: null,
         external_provider: "asaas",
-        external_subscription_id: subJson.id,
+        external_payment_id: payJson.id || null,
       })
       .select()
       .single();
 
-    return jsonResponse({ ok: true, payment, message: "Assinatura recorrente criada no Asaas." });
+    return jsonResponse({ ok: true, payment, message: "Cobrança avulsa criada no Asaas." });
   } catch (err) {
     return jsonResponse({ error: err.message || "Erro inesperado." }, 400);
   }
