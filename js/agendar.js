@@ -141,13 +141,19 @@ async function renderSlots(){
   const duration = Number(service?.duration_minutes || 30);
   const weekday = weekdayFromDate(date);
 
-  const [availabilityRes, booked, blockRes] = await Promise.all([
+  const [availabilityRes, specialRes, booked, blockRes] = await Promise.all([
     db.from('barber_availability')
       .select('*')
       .eq('barbershop_id', shop.id)
       .eq('barber_id', barberId)
       .eq('weekday', weekday)
       .eq('active', true),
+    db.from('special_day_hours')
+      .select('*')
+      .eq('barbershop_id', shop.id)
+      .eq('barber_id', barberId)
+      .eq('special_date', date)
+      .maybeSingle(),
     getBookedSlots(barberId, date),
     db.from('schedule_blocks')
       .select('*')
@@ -156,7 +162,20 @@ async function renderSlots(){
       .or(`barber_id.eq.${barberId},barber_id.is.null`)
   ]);
 
-  const availabilities = availabilityRes.data || [];
+  const specialDay = specialRes.data || null;
+  if (specialDay?.closed) {
+    slotsEl.innerHTML = '<div class="empty" style="grid-column:1/-1">A barbearia não abrirá com este barbeiro nesta data.</div>';
+    return;
+  }
+
+  const availabilities = specialDay
+    ? [{
+        start_time: specialDay.start_time,
+        end_time: specialDay.end_time,
+        break_start: specialDay.break_start,
+        break_end: specialDay.break_end
+      }]
+    : (availabilityRes.data || []);
   const blocks = blockRes.data || [];
 
   if (!availabilities.length) {

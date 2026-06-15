@@ -1,4 +1,63 @@
 
+async function loadSpecialDays(){
+  const rows = document.getElementById('specialRows');
+  if (!rows) return;
+
+  const { data } = await db
+    .from('special_day_hours')
+    .select('*')
+    .eq('barbershop_id', activeShop.id)
+    .gte('special_date', todayISO())
+    .order('special_date', { ascending: true });
+
+  const items = data || [];
+  rows.innerHTML = items.length ? items.map(item => {
+    const barber = barbers.find(b => b.id === item.barber_id);
+    const rule = item.closed
+      ? 'Fechado'
+      : `${String(item.start_time || '').slice(0,5)} às ${String(item.end_time || '').slice(0,5)}`;
+    const breakText = (!item.closed && item.break_start && item.break_end)
+      ? ` · intervalo ${String(item.break_start).slice(0,5)} às ${String(item.break_end).slice(0,5)}`
+      : '';
+    return `
+      <tr>
+        <td data-label="Data">${dateBR(item.special_date)}</td>
+        <td data-label="Barbeiro">${escapeHtml(barber?.name || 'Equipe')}</td>
+        <td data-label="Regra">${escapeHtml(rule + breakText)}</td>
+        <td data-label="Motivo">${escapeHtml(item.reason || '-')}</td>
+        <td data-label="Ações"><div class="actions"><button class="btn danger small" onclick="removeSpecialDay('${item.id}')">Excluir</button></div></td>
+      </tr>`;
+  }).join('') : `<tr><td colspan="5"><div class="empty">Nenhuma alteração específica cadastrada.</div></td></tr>`;
+}
+
+window.removeSpecialDay = async (id) => {
+  if (!confirm('Excluir esta alteração de agenda?')) return;
+  const { error } = await db
+    .from('special_day_hours')
+    .delete()
+    .eq('id', id)
+    .eq('barbershop_id', activeShop.id);
+  if (error) {
+    showToast('Não foi possível excluir a alteração.', 'error');
+    return;
+  }
+  showToast('Alteração removida.', 'success');
+  await loadSpecialDays();
+};
+
+function updateSpecialModeFields(){
+  const mode = document.getElementById('special_mode')?.value;
+  const custom = document.getElementById('specialCustomFields');
+  const breaks = document.getElementById('specialBreakFields');
+  if (!custom || !breaks) return;
+  const show = mode === 'custom';
+  custom.classList.toggle('hidden', !show);
+  breaks.classList.toggle('hidden', !show);
+  document.getElementById('special_start').required = show;
+  document.getElementById('special_end').required = show;
+}
+
+
 async function loadAdvanceSetting(){
   const select = document.getElementById('booking_min_advance_minutes');
   if (!select) return;
@@ -102,6 +161,57 @@ window.removeBlock = async (id) => {
       }
       activeShop.booking_min_advance_minutes = minutes;
       showToast('Antecedência mínima salva.', 'success');
+    });
+  }
+
+
+  const specialMode = document.getElementById('special_mode');
+  if (specialMode) {
+    specialMode.addEventListener('change', updateSpecialModeFields);
+    updateSpecialModeFields();
+  }
+
+  const specialDayForm = document.getElementById('specialDayForm');
+  if (specialDayForm) {
+    specialDayForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const mode = document.getElementById('special_mode').value;
+      const closed = mode === 'closed';
+      const payload = {
+        barbershop_id: activeShop.id,
+        barber_id: document.getElementById('special_barber_id').value,
+        special_date: document.getElementById('special_date').value,
+        closed,
+        start_time: closed ? null : document.getElementById('special_start').value,
+        end_time: closed ? null : document.getElementById('special_end').value,
+        break_start: closed ? null : (document.getElementById('special_break_start').value || null),
+        break_end: closed ? null : (document.getElementById('special_break_end').value || null),
+        reason: document.getElementById('special_reason').value.trim()
+      };
+
+      if (!payload.barber_id || !payload.special_date) {
+        showToast('Escolha o barbeiro e a data.', 'error');
+        return;
+      }
+      if (!closed && (!payload.start_time || !payload.end_time)) {
+        showToast('Informe o início e o fim do horário especial.', 'error');
+        return;
+      }
+
+      const { error } = await db
+        .from('special_day_hours')
+        .upsert(payload, { onConflict: 'barbershop_id,barber_id,special_date' });
+
+      if (error) {
+        showToast('Não foi possível salvar essa alteração.', 'error');
+        return;
+      }
+
+      e.target.reset();
+      updateSpecialModeFields();
+      showToast('Agenda desse dia atualizada.', 'success');
+      await loadSpecialDays();
     });
   }
 

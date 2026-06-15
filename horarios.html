@@ -53,6 +53,45 @@
   </div>
 </section>
 
+
+<section class="grid two" style="margin-top:14px">
+  <div class="card">
+    <h3>Agenda em dia específico</h3>
+    <p class="muted-copy">Use para feriados, eventos, folgas ou dias em que a barbearia vai funcionar em horário diferente.</p>
+    <form id="specialDayForm" class="form" style="margin-top:14px">
+      <div class="field"><label>Barbeiro</label><select id="special_barber_id" required></select></div>
+      <div class="field"><label>Data</label><input id="special_date" type="date" required></div>
+      <div class="field">
+        <label>Como será esse dia?</label>
+        <select id="special_mode" required>
+          <option value="closed">Não abrir nesse dia</option>
+          <option value="custom">Abrir em horário diferente</option>
+        </select>
+      </div>
+      <div id="specialCustomFields" class="row hidden">
+        <div class="field"><label>Início</label><input id="special_start" type="time"></div>
+        <div class="field"><label>Fim</label><input id="special_end" type="time"></div>
+      </div>
+      <div id="specialBreakFields" class="row hidden">
+        <div class="field"><label>Intervalo início</label><input id="special_break_start" type="time"></div>
+        <div class="field"><label>Intervalo fim</label><input id="special_break_end" type="time"></div>
+      </div>
+      <div class="field"><label>Motivo</label><input id="special_reason" placeholder="Ex: feriado, evento, abrir só pela manhã"></div>
+      <button class="btn primary full" type="submit">Salvar alteração do dia</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Alterações por data</h3>
+    <p class="muted-copy">As regras abaixo substituem a disponibilidade semanal apenas na data escolhida.</p>
+    <div class="table-wrap" style="margin-top:12px">
+      <table class="table">
+        <thead><tr><th>Data</th><th>Barbeiro</th><th>Regra</th><th>Motivo</th><th>Ações</th></tr></thead>
+        <tbody id="specialRows"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 <section class="grid two" style="margin-top:14px">
   <div class="card">
     <h3>Horários cadastrados</h3>

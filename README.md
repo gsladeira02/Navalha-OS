@@ -93,3 +93,21 @@ https://navalha-os.vercel.app/agenda/nomedabarbearia
 A Vercel usa `vercel.json` para redirecionar internamente esse caminho para `agendar.html`.
 
 Se a barbearia tiver slug definido, ele será usado. Se não tiver, o sistema gera o link com base no nome da barbearia.
+
+
+## Agenda em dia específico
+
+Na aba **Horários**, existe a seção **Agenda em dia específico**.
+
+Ela permite configurar exceções para um barbeiro em uma data específica, por exemplo:
+- não abrir em um feriado;
+- abrir apenas pela manhã;
+- abrir em horário diferente do horário semanal;
+- cadastrar um intervalo específico para aquele dia.
+
+A regra do dia específico substitui a disponibilidade semanal somente naquela data.
+
+
+## Correção da página pública de agendamento
+
+A página `agendar.html` foi ajustada para usar caminhos absolutos (`/css`, `/js`, `/assets`) e `base href="/"`, garantindo que o layout carregue corretamente quando o cliente acessa URLs no formato `/agenda/nomedabarbearia`.

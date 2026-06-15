@@ -299,3 +299,56 @@ drop policy if exists "public_read_active_barbershops_name_link" on public.barbe
 create policy "public_read_active_barbershops_name_link" on public.barbershops
 for select to anon
 using (active = true and subscription_status = 'active');
+
+
+-- Alterações de agenda para um dia específico
+-- Ex.: feriado fechado, abrir só pela manhã, abrir em horário diferente.
+create table if not exists public.special_day_hours (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  barber_id uuid not null references public.barbers(id) on delete cascade,
+  special_date date not null,
+  closed boolean not null default false,
+  start_time time,
+  end_time time,
+  break_start time,
+  break_end time,
+  reason text,
+  created_at timestamptz not null default now(),
+  unique (barbershop_id, barber_id, special_date)
+);
+
+alter table public.special_day_hours enable row level security;
+
+drop policy if exists "owners_manage_special_day_hours" on public.special_day_hours;
+create policy "owners_manage_special_day_hours" on public.special_day_hours
+for all to authenticated
+using (
+  exists (
+    select 1 from public.barbershops b
+    where b.id = special_day_hours.barbershop_id
+    and b.owner_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from public.barbershops b
+    where b.id = special_day_hours.barbershop_id
+    and b.owner_id = auth.uid()
+  )
+);
+
+drop policy if exists "public_read_special_day_hours" on public.special_day_hours;
+create policy "public_read_special_day_hours" on public.special_day_hours
+for select to anon
+using (
+  exists (
+    select 1 from public.barbershops b
+    where b.id = special_day_hours.barbershop_id
+    and b.active = true
+    and b.subscription_status = 'active'
+  )
+);
+
+grant select on public.special_day_hours to anon;
+grant select, insert, update, delete on public.special_day_hours to authenticated;

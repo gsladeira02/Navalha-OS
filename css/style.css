@@ -275,3 +275,20 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;background-im
 @media (min-width:760px){
   .login-clean-card{padding:32px 28px}
 }
+
+
+/* Public booking refinements */
+.booking-wrap{max-width:620px}
+.booking-header{padding:8px 0 2px}
+.booking-card{padding:18px}
+.booking-badge{display:inline-flex;align-items:center;justify-content:center;margin:0 0 14px;padding:8px 12px;border-radius:999px;background:rgba(31,95,255,.10);border:1px solid rgba(31,95,255,.18);color:#dcebff;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.booking-card .form{gap:14px}
+.booking-card .field label{font-size:13px;color:#dbe6f7;font-weight:700;margin-bottom:6px;display:block}
+.booking-card .field input,.booking-card .field select{width:100%}
+.help-text{margin-top:8px;color:var(--muted);font-size:12px;line-height:1.45}
+@media (max-width:520px){
+  .booking-wrap{padding-bottom:8px}
+  .booking-header h1{font-size:28px}
+  .booking-header p{font-size:14px}
+  .slot-grid{grid-template-columns:repeat(2,1fr)}
+}
