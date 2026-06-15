@@ -109,7 +109,7 @@ window.completeAppointment = async (id) => {
     const startTime = document.getElementById('start_time').value;
 
     const { data: conflict } = await db.from('appointments').select('id').eq('barbershop_id', activeShop.id).eq('barber_id', barber?.id || '').eq('appointment_date', date).eq('start_time', startTime).neq('status','cancelado');
-    if ((conflict || []).length) { alert('Já existe um horário neste horário para este barbeiro.'); return; }
+    if ((conflict || []).length) { showToast('Já existe um horário neste horário para este barbeiro.', 'error'); return; }
 
     await db.from('appointments').insert({
       barbershop_id: activeShop.id,
@@ -130,6 +130,7 @@ window.completeAppointment = async (id) => {
     });
     e.target.reset();
     document.getElementById('appointment_date').value = todayISO();
+    showToast('Horário salvo.', 'success');
     loadAppointments();
   });
 })();

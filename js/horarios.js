@@ -83,10 +83,11 @@ window.removeBlock = async (id) => {
       break_end: document.getElementById('break_end').value || null,
       active: true
     };
-    if (payload.start_time >= payload.end_time) { alert('O horário final precisa ser depois do início.'); return; }
-    if ((payload.break_start && !payload.break_end) || (!payload.break_start && payload.break_end)) { alert('Preencha início e fim do intervalo.'); return; }
+    if (payload.start_time >= payload.end_time) { showToast('O horário final precisa ser depois do início.', 'error'); return; }
+    if ((payload.break_start && !payload.break_end) || (!payload.break_start && payload.break_end)) { showToast('Preencha início e fim do intervalo.', 'error'); return; }
     await db.from('barber_availability').insert(payload);
     e.target.reset();
+    showToast('Horário semanal salvo.', 'success');
     loadAvailability();
   });
 
@@ -100,10 +101,11 @@ window.removeBlock = async (id) => {
       end_time: document.getElementById('block_end').value || null,
       reason: document.getElementById('reason').value.trim()
     };
-    if ((payload.start_time && !payload.end_time) || (!payload.start_time && payload.end_time)) { alert('Preencha início e fim do bloqueio, ou deixe os dois vazios para bloquear o dia inteiro.'); return; }
-    if (payload.start_time && payload.start_time >= payload.end_time) { alert('O horário final precisa ser depois do início.'); return; }
+    if ((payload.start_time && !payload.end_time) || (!payload.start_time && payload.end_time)) { showToast('Preencha início e fim do bloqueio, ou deixe os dois vazios para bloquear o dia inteiro.', 'error'); return; }
+    if (payload.start_time && payload.start_time >= payload.end_time) { showToast('O horário final precisa ser depois do início.', 'error'); return; }
     await db.from('schedule_blocks').insert(payload);
     e.target.reset();
+    showToast('Bloqueio salvo.', 'success');
     loadBlocks();
   });
 })();

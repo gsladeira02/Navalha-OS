@@ -1,3 +1,5 @@
+# NavalhaOS — Versão final para venda
+
 # NavalhaOS
 
 Versão final do sistema para clientes, com visual em azul e vermelho, logo própria e acesso apenas para contas ativas.
@@ -34,3 +36,30 @@ Nela, a barbearia cadastra:
 - bloqueio para barbeiro específico ou barbearia inteira.
 
 O link público de agendamento usa esses horários e mostra ao cliente apenas os horários realmente disponíveis.
+
+
+## Plano único
+
+O sistema foi preparado para trabalhar com apenas um plano, com todas as funcionalidades liberadas para contas ativas.
+
+Sugestão comercial:
+
+```txt
+NavalhaOS — plano único com tudo incluso por R$ 149/mês.
+```
+
+No banco, use:
+
+```sql
+plan = 'complete'
+subscription_status = 'active'
+active = true
+```
+
+
+## Páginas legais
+
+A versão inclui:
+
+- `privacidade.html`
+- `termos.html`

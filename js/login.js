@@ -1,3 +1,4 @@
+
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = document.getElementById('email').value.trim();
@@ -16,12 +17,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     if (shopError) throw shopError;
     if (!shop || !shop.active || shop.subscription_status !== 'active') {
       await db.auth.signOut();
-      alert('Acesso indisponível.');
+      showToast('Acesso indisponível. Fale com o responsável pelo sistema.', 'error');
       return;
     }
-    window.location.href = 'dashboard.html';
+    showToast('Login realizado com sucesso.', 'success');
+    setTimeout(() => window.location.href = 'dashboard.html', 450);
   } catch (err) {
-    alert('E-mail ou senha inválidos.');
+    showToast('E-mail ou senha inválidos.', 'error');
   } finally {
     button.disabled = false;
     button.textContent = 'Entrar';

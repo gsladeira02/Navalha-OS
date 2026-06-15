@@ -5,7 +5,7 @@ create table if not exists public.barbershops (
   owner_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   phone text,
-  plan text default 'professional',
+  plan text default 'complete',
   subscription_status text not null default 'inactive',
   active boolean not null default false,
   slug text unique,
@@ -106,7 +106,7 @@ create table if not exists public.schedule_blocks (
 grant usage on schema public to authenticated, anon;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant select on public.barbershops, public.barbers, public.services, public.barber_availability, public.schedule_blocks to anon;
-grant select, insert on public.customers, public.appointments to anon;
+grant insert on public.customers, public.appointments to anon;
 
 alter table public.barbershops enable row level security;
 alter table public.barbers enable row level security;
@@ -240,3 +240,44 @@ using (
     and b.subscription_status = 'active'
   )
 );
+
+
+-- Atualizações para bancos já existentes
+alter table public.barbershops add column if not exists slug text unique;
+alter table public.barbershops alter column plan set default 'complete';
+alter table public.appointments add column if not exists commission_percent numeric(5,2) not null default 0;
+
+create unique index if not exists appointments_no_double_booking_idx
+on public.appointments(barbershop_id, barber_id, appointment_date, start_time)
+where status in ('marcado','confirmado','concluido');
+
+-- Função pública segura: retorna apenas horários ocupados, sem expor dados de clientes
+create or replace function public.get_public_booked_slots(
+  target_barbershop_id uuid,
+  target_barber_id uuid,
+  target_date date
+)
+returns table(start_time time, end_time time)
+language sql
+security definer
+set search_path = public
+as $$
+  select a.start_time, a.end_time
+  from public.appointments a
+  join public.barbershops b on b.id = a.barbershop_id
+  where a.barbershop_id = target_barbershop_id
+    and a.barber_id = target_barber_id
+    and a.appointment_date = target_date
+    and a.status in ('marcado','confirmado','concluido')
+    and b.active = true
+    and b.subscription_status = 'active';
+$$;
+
+grant execute on function public.get_public_booked_slots(uuid, uuid, date) to anon, authenticated;
+
+-- Privacidade no link público: visitante não deve listar clientes nem detalhes de agenda
+revoke select on public.customers from anon;
+revoke select on public.appointments from anon;
+
+drop policy if exists "public_select_customers_by_phone" on public.customers;
+drop policy if exists "public_select_appointments_slots" on public.appointments;

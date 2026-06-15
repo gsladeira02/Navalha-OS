@@ -30,7 +30,7 @@ async function initBooking(){
     return;
   }
 
-  const { data: shopData } = await db
+  const { data: shopData, error: shopError } = await db
     .from('barbershops')
     .select('id,name,active,subscription_status,slug')
     .eq('slug', slug)
@@ -38,8 +38,8 @@ async function initBooking(){
     .eq('subscription_status', 'active')
     .maybeSingle();
 
-  if (!shopData) {
-    document.getElementById('bookingCard').innerHTML = '<div class="success-panel"><h2>Agenda indisponível</h2><p>Confira o link recebido.</p></div>';
+  if (shopError || !shopData) {
+    document.getElementById('bookingCard').innerHTML = '<div class="success-panel"><h2>Agenda indisponível</h2><p>Confira o link recebido ou fale com a barbearia.</p></div>';
     return;
   }
 
@@ -72,6 +72,19 @@ async function initBooking(){
   renderSlots();
 }
 
+async function getBookedSlots(barberId, date){
+  const { data, error } = await db.rpc('get_public_booked_slots', {
+    target_barbershop_id: shop.id,
+    target_barber_id: barberId,
+    target_date: date
+  });
+  if (error) {
+    showToast('Não foi possível carregar os horários ocupados.', 'error');
+    return [];
+  }
+  return data || [];
+}
+
 async function renderSlots(){
   selectedSlot = '';
   const serviceId = document.getElementById('service_id').value;
@@ -88,19 +101,14 @@ async function renderSlots(){
   const duration = Number(service?.duration_minutes || 30);
   const weekday = weekdayFromDate(date);
 
-  const [availabilityRes, bookedRes, blockRes] = await Promise.all([
+  const [availabilityRes, booked, blockRes] = await Promise.all([
     db.from('barber_availability')
       .select('*')
       .eq('barbershop_id', shop.id)
       .eq('barber_id', barberId)
       .eq('weekday', weekday)
       .eq('active', true),
-    db.from('appointments')
-      .select('start_time,end_time,status')
-      .eq('barbershop_id', shop.id)
-      .eq('barber_id', barberId)
-      .eq('appointment_date', date)
-      .in('status', ['marcado','confirmado','concluido']),
+    getBookedSlots(barberId, date),
     db.from('schedule_blocks')
       .select('*')
       .eq('barbershop_id', shop.id)
@@ -109,7 +117,6 @@ async function renderSlots(){
   ]);
 
   const availabilities = availabilityRes.data || [];
-  const booked = bookedRes.data || [];
   const blocks = blockRes.data || [];
 
   if (!availabilities.length) {
@@ -165,7 +172,7 @@ document.getElementById('bookingForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   if (!selectedSlot) {
-    alert('Escolha um horário disponível.');
+    showToast('Escolha um horário disponível.', 'error');
     return;
   }
 
@@ -175,46 +182,35 @@ document.getElementById('bookingForm').addEventListener('submit', async (e) => {
   const customerPhone = document.getElementById('customer_phone').value.trim();
   const appointmentDate = document.getElementById('appointment_date').value;
 
-  const { data: existingCustomer } = await db
-    .from('customers')
-    .select('id')
-    .eq('barbershop_id', shop.id)
-    .eq('phone', customerPhone)
-    .maybeSingle();
-
-  let customerId = existingCustomer?.id || null;
-
-  if (!customerId) {
-    const { data: newCustomer } = await db
-      .from('customers')
-      .insert({
-        barbershop_id: shop.id,
-        name: customerName,
-        phone: customerPhone
-      })
-      .select('id')
-      .single();
-    customerId = newCustomer?.id || null;
+  if (!service || !barber || !customerName || !customerPhone) {
+    showToast('Preencha todos os campos para confirmar.', 'error');
+    return;
   }
 
-  const { data: conflict } = await db
-    .from('appointments')
-    .select('id')
-    .eq('barbershop_id', shop.id)
-    .eq('barber_id', barber.id)
-    .eq('appointment_date', appointmentDate)
-    .eq('start_time', selectedSlot)
-    .in('status', ['marcado','confirmado','concluido']);
+  await db.from('customers').insert({
+    barbershop_id: shop.id,
+    name: customerName,
+    phone: customerPhone
+  });
 
-  if ((conflict || []).length) {
-    alert('Esse horário acabou de ser preenchido. Escolha outro.');
+  const booked = await getBookedSlots(barber.id, appointmentDate);
+  const duration = Number(service.duration_minutes || 30);
+  const selectedEnd = addMinutes(selectedSlot, duration);
+  const conflict = booked.some(i => {
+    const start = String(i.start_time).slice(0,5);
+    const end = i.end_time ? String(i.end_time).slice(0,5) : addMinutes(start, duration);
+    return overlaps(selectedSlot, selectedEnd, start, end);
+  });
+
+  if (conflict) {
+    showToast('Esse horário acabou de ser preenchido. Escolha outro.', 'error');
     await renderSlots();
     return;
   }
 
   const { error } = await db.from('appointments').insert({
     barbershop_id: shop.id,
-    customer_id: customerId,
+    customer_id: null,
     barber_id: barber.id,
     service_id: service.id,
     customer_name: customerName,
@@ -223,14 +219,14 @@ document.getElementById('bookingForm').addEventListener('submit', async (e) => {
     barber_name: barber.name,
     appointment_date: appointmentDate,
     start_time: selectedSlot,
-    end_time: addMinutes(selectedSlot, service.duration_minutes || 30),
+    end_time: selectedEnd,
     price: Number(service.price || 0),
     commission_percent: service.commission_percent != null ? Number(service.commission_percent) : Number(barber.commission_percent || 0),
     status: 'marcado'
   });
 
   if (error) {
-    alert('Não foi possível confirmar. Tente novamente.');
+    showToast('Não foi possível confirmar. Tente novamente.', 'error');
     return;
   }
 
