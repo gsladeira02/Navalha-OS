@@ -49,7 +49,7 @@ echo Salvando secrets no Supabase...
 supabase secrets set SUPABASE_URL="%SUPABASE_URL%"
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY="%SERVICE_ROLE_KEY%"
 supabase secrets set PAYMENT_WEBHOOK_SECRET="%WEBHOOK_SECRET%"
-supabase secrets set ASAAS_BASE_URL="https://sandbox.asaas.com/api/v3"
+supabase secrets set ASAAS_BASE_URL="https://api.asaas.com/v3"
 supabase secrets set NFEIO_BASE_URL="https://api.nfe.io/v1"
 supabase secrets set NFEIO_CITY_SERVICE_CODE="0107"
 

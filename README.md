@@ -172,3 +172,20 @@ O campo manual de link Asaas foi removido da criação de assinatura. Agora o fl
 4. clicar em **Gerar cobrança**.
 
 A Edge Function `create-recurring-payment` cria a assinatura no Asaas e salva o link automaticamente no sistema.
+
+
+## Correção Asaas produção
+
+Se a chave do Asaas começar com `aact_prod`, use a URL de produção:
+
+```txt
+https://api.asaas.com/v3
+```
+
+Este pacote inclui o arquivo:
+
+```txt
+CORRIGIR_ASAAS_PRODUCAO_WINDOWS.bat
+```
+
+Ele ajusta a secret `ASAAS_BASE_URL` e redeploya a função `create-recurring-payment`.

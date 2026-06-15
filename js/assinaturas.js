@@ -40,12 +40,25 @@ function subscriptionById(id){ return subscriptions.find(s => s.id === id); }
 async function callSecureFunction(name, body){
   const { data: { session } } = await db.auth.getSession();
   if (!session) throw new Error('Sessão expirada');
-  const { data, error } = await db.functions.invoke(name, {
-    body,
-    headers: { Authorization: `Bearer ${session.access_token}` }
+
+  const endpoint = `${window.NAVALHAOS_CONFIG.SUPABASE_URL}/functions/v1/${name}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': window.NAVALHAOS_CONFIG.SUPABASE_ANON_KEY
+    },
+    body: JSON.stringify(body || {})
   });
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+
+  let data = null;
+  try { data = await response.json(); } catch (_) {}
+
+  if (!response.ok || data?.error) {
+    throw new Error(data?.error || `Erro ${response.status} na função ${name}.`);
+  }
+
   return data;
 }
 
