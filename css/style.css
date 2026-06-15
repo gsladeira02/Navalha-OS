@@ -422,3 +422,8 @@ select:focus{
 .plan-change-note{margin:0;padding:12px 13px;border-radius:15px;background:rgba(31,95,255,.09);border:1px solid rgba(31,95,255,.16);color:#dce8ff;font-size:12px;line-height:1.45}
 .site-plans-preview div.featured{display:grid;align-items:start;grid-template-columns:1fr auto;gap:4px 12px;background:rgba(33,178,109,.10);border-color:rgba(33,178,109,.28)}
 .site-plans-preview div.featured small{grid-column:1/-1;color:#dfffee;font-size:12px;line-height:1.35}
+
+
+/* Endereço no link público de agenda */
+.booking-address{margin:10px auto 0;max-width:520px;color:#fff;font-weight:800;font-size:14px;line-height:1.45;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.booking-address.hidden{display:none}

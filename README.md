@@ -423,3 +423,14 @@ O sistema:
 ## Indução ao plano anual
 
 A página inicial destaca o plano anual como "Mais vantajoso", seleciona o anual por padrão e mostra a economia anual em relação ao mensal.
+
+
+## Endereço da barbearia no link de agenda
+
+O cadastro público agora pede o endereço da barbearia.
+
+O endereço é salvo em:
+- `barbershops.address`;
+- `system_subscriptions.barbershop_address`.
+
+No link público `/agenda/slug-da-barbearia`, o endereço aparece abaixo do nome da barbearia. Se a barbearia usar unidades e a unidade selecionada tiver endereço próprio, o endereço da unidade aparece no lugar do endereço principal.

@@ -26,6 +26,15 @@ function weekdayFromDate(dateValue){
   return new Date(dateValue + 'T00:00:00').getDay();
 }
 
+function updateBookingAddress(unitId){
+  const addressEl = document.getElementById('shopAddress');
+  if (!addressEl) return;
+  const unit = units.find(u => u.id === unitId);
+  const address = unit?.address || shop?.address || '';
+  addressEl.textContent = address ? `📍 ${address}` : '';
+  addressEl.classList.toggle('hidden', !address);
+}
+
 
 function isUUIDValue(value){
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
@@ -63,7 +72,7 @@ async function initBooking(){
   if (isUUIDValue(slug)) {
     directLookup = await db
       .from('barbershops')
-      .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
+      .select('id,name,address,active,subscription_status,slug,booking_min_advance_minutes')
       .or(`slug.eq.${slug},id.eq.${slug}`)
       .eq('active', true)
       .eq('subscription_status', 'active')
@@ -71,7 +80,7 @@ async function initBooking(){
   } else {
     directLookup = await db
       .from('barbershops')
-      .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
+      .select('id,name,address,active,subscription_status,slug,booking_min_advance_minutes')
       .eq('slug', slug)
       .eq('active', true)
       .eq('subscription_status', 'active')
@@ -83,7 +92,7 @@ async function initBooking(){
 
   const fallbackLookup = await db
     .from('barbershops')
-    .select('id,name,active,subscription_status,slug,booking_min_advance_minutes')
+    .select('id,name,address,active,subscription_status,slug,booking_min_advance_minutes')
     .eq('active', true)
     .eq('subscription_status', 'active');
 
@@ -109,6 +118,11 @@ async function initBooking(){
 
   shop = shopData;
   document.getElementById('shopTitle').textContent = shop.name;
+  const shopAddressEl = document.getElementById('shopAddress');
+  if (shopAddressEl) {
+    shopAddressEl.textContent = shop.address ? `📍 ${shop.address}` : '';
+    shopAddressEl.classList.toggle('hidden', !shop.address);
+  }
 
   const [unitsRes, servicesRes, barbersRes] = await Promise.all([
     db.from('units').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name'),
@@ -135,6 +149,7 @@ async function initBooking(){
 
   document.getElementById('unit_id').addEventListener('change', () => {
     const unitId = document.getElementById('unit_id').value;
+    updateBookingAddress(unitId);
     const filtered = unitId ? barbers.filter(b => b.unit_id === unitId) : [];
     document.getElementById('barber_id').innerHTML =
       '<option value="">Escolha o barbeiro</option>' +

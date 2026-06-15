@@ -82,12 +82,19 @@ document.addEventListener('DOMContentLoaded', () => {
       adminCpf: onlyDigits(document.getElementById('adminCpf').value),
       adminPassword: document.getElementById('adminPassword').value,
       barbershopName: document.getElementById('barbershopName').value.trim(),
+      barbershopAddress: document.getElementById('barbershopAddress').value.trim(),
       barbershopCnpj: onlyDigits(document.getElementById('barbershopCnpj').value),
       barbershopPhone: onlyDigits(document.getElementById('barbershopPhone').value)
     };
 
     if (payload.adminCpf.length !== 11) {
       result.textContent = 'Preencha um CPF válido com 11 números.';
+      result.className = 'site-form-result error';
+      return;
+    }
+
+    if (!payload.barbershopAddress || payload.barbershopAddress.length < 8) {
+      result.textContent = 'Informe o endereço da barbearia.';
       result.className = 'site-form-result error';
       return;
     }

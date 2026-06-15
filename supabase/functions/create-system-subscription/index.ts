@@ -210,6 +210,7 @@ serve(async (req) => {
     const adminCpf = onlyDigits(body?.adminCpf);
     const adminPassword = String(body?.adminPassword || "");
     const barbershopName = String(body?.barbershopName || "").trim();
+    const barbershopAddress = String(body?.barbershopAddress || "").trim();
     const barbershopCnpj = onlyDigits(body?.barbershopCnpj);
     const barbershopPhone = onlyDigits(body?.barbershopPhone);
 
@@ -218,6 +219,7 @@ serve(async (req) => {
     if (adminPassword.length < 6) throw new Error("A senha precisa ter pelo menos 6 caracteres.");
     if (adminCpf.length !== 11) throw new Error("Informe um CPF válido do administrador.");
     if (!barbershopName) throw new Error("Informe o nome da barbearia.");
+    if (barbershopAddress.length < 8) throw new Error("Informe o endereço da barbearia.");
     if (barbershopCnpj.length !== 14) throw new Error("Informe um CNPJ válido da barbearia.");
     if (adminPhone.length < 10 || barbershopPhone.length < 10) throw new Error("Informe os celulares com DDD.");
 
@@ -261,6 +263,7 @@ serve(async (req) => {
         .update({
           name: barbershopName,
           phone: barbershopPhone,
+          address: barbershopAddress,
           cnpj: barbershopCnpj,
           admin_name: adminName,
           admin_cpf: adminCpf,
@@ -299,6 +302,7 @@ serve(async (req) => {
           owner_id: userId,
           name: barbershopName,
           phone: barbershopPhone,
+          address: barbershopAddress,
           cnpj: barbershopCnpj,
           admin_name: adminName,
           admin_cpf: adminCpf,
@@ -333,6 +337,7 @@ serve(async (req) => {
       admin_phone: adminPhone,
       admin_cpf: adminCpf,
       barbershop_name: barbershopName,
+      barbershop_address: barbershopAddress,
       barbershop_cnpj: barbershopCnpj,
       barbershop_phone: barbershopPhone,
       plan_code: plan.code,
