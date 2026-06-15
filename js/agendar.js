@@ -1,6 +1,7 @@
 
 let shop = null;
 let services = [];
+let units = [];
 let barbers = [];
 let selectedSlot = '';
 
@@ -109,25 +110,38 @@ async function initBooking(){
   shop = shopData;
   document.getElementById('shopTitle').textContent = shop.name;
 
-  const [servicesRes, barbersRes] = await Promise.all([
+  const [unitsRes, servicesRes, barbersRes] = await Promise.all([
+    db.from('units').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name'),
     db.from('services').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name'),
     db.from('barbers').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name')
   ]);
 
+  units = unitsRes.data || [];
   services = servicesRes.data || [];
   barbers = barbersRes.data || [];
+
+  document.getElementById('unit_id').innerHTML =
+    '<option value="">Escolha a unidade</option>' +
+    units.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
 
   document.getElementById('service_id').innerHTML =
     '<option value="">Escolha o serviço</option>' +
     services.map(s => `<option value="${s.id}">${escapeHtml(s.name)} - ${currency.format(Number(s.price || 0))}</option>`).join('');
 
-  document.getElementById('barber_id').innerHTML =
-    '<option value="">Escolha o barbeiro</option>' +
-    barbers.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+  document.getElementById('barber_id').innerHTML = '<option value="">Escolha a unidade primeiro</option>';
 
   document.getElementById('appointment_date').value = todayISO();
   document.getElementById('appointment_date').min = todayISO();
 
+  document.getElementById('unit_id').addEventListener('change', () => {
+    const unitId = document.getElementById('unit_id').value;
+    const filtered = unitId ? barbers.filter(b => b.unit_id === unitId) : [];
+    document.getElementById('barber_id').innerHTML =
+      '<option value="">Escolha o barbeiro</option>' +
+      filtered.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+    selectedSlot = '';
+    renderSlots();
+  });
   document.getElementById('service_id').addEventListener('change', renderSlots);
   document.getElementById('barber_id').addEventListener('change', renderSlots);
   document.getElementById('appointment_date').addEventListener('change', renderSlots);
@@ -150,13 +164,14 @@ async function getBookedSlots(barberId, date){
 
 async function renderSlots(){
   selectedSlot = '';
+  const unitId = document.getElementById('unit_id').value;
   const serviceId = document.getElementById('service_id').value;
   const barberId = document.getElementById('barber_id').value;
   const date = document.getElementById('appointment_date').value;
   const slotsEl = document.getElementById('slots');
 
-  if (!serviceId || !barberId || !date) {
-    slotsEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Escolha serviço, barbeiro e data.</div>';
+  if (!unitId || !serviceId || !barberId || !date) {
+    slotsEl.innerHTML = '<div class="empty" style="grid-column:1/-1">Escolha unidade, serviço, barbeiro e data.</div>';
     return;
   }
 
@@ -301,6 +316,7 @@ document.getElementById('bookingForm').addEventListener('submit', async (e) => {
   const { error } = await db.from('appointments').insert({
     barbershop_id: shop.id,
     customer_id: null,
+    unit_id: document.getElementById('unit_id').value || null,
     barber_id: barber.id,
     service_id: service.id,
     customer_name: customerName,

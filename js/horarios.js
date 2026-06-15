@@ -72,15 +72,21 @@ async function loadAdvanceSetting(){
 }
 
 
+let units = [];
 let barbers = [];
 const weekdays = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
 function timeLabel(t){ return t ? String(t).slice(0,5) : ''; }
 
 async function loadBarbers(){
-  const { data } = await db.from('barbers').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name');
-  barbers = data || [];
-  const options = '<option value="">Selecionar barbeiro</option>' + barbers.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+  const [unitsRes, barbersRes] = await Promise.all([
+    db.from('units').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name'),
+    db.from('barbers').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name')
+  ]);
+  units = unitsRes.data || [];
+  barbers = barbersRes.data || [];
+  const label = (b) => `${escapeHtml(b.name)}${b.unit_id ? ' • ' + escapeHtml(units.find(u => u.id === b.unit_id)?.name || '') : ''}`;
+  const options = '<option value="">Selecionar barbeiro</option>' + barbers.map(b => `<option value="${b.id}">${label(b)}</option>`).join('');
   document.getElementById('barber_id').innerHTML = options;
   document.getElementById('block_barber_id').innerHTML = '<option value="">Barbearia inteira</option>' + barbers.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
 }

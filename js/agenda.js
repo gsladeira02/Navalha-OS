@@ -1,6 +1,7 @@
 
 
 let customers = [];
+let units = [];
 let barbers = [];
 let services = [];
 
@@ -9,17 +10,26 @@ function fillSelect(el, items, firstLabel){
 }
 
 async function loadRefs(){
-  const [c,b,s] = await Promise.all([
+  const [c,u,b,s] = await Promise.all([
     db.from('customers').select('*').eq('barbershop_id', activeShop.id).order('name'),
+    db.from('units').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name'),
     db.from('barbers').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name'),
     db.from('services').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name')
   ]);
   customers = c.data || [];
+  units = u.data || [];
   barbers = b.data || [];
   services = s.data || [];
   fillSelect(document.getElementById('customer_id'), customers, 'Selecionar cliente');
-  fillSelect(document.getElementById('barber_id'), barbers, 'Selecionar barbeiro');
+  fillSelect(document.getElementById('unit_id'), units, 'Selecionar unidade');
+  fillSelect(document.getElementById('barber_id'), [], 'Selecione a unidade primeiro');
   fillSelect(document.getElementById('service_id'), services, 'Selecionar serviço');
+}
+
+function updateBarbersByUnit(){
+  const unitId = document.getElementById('unit_id').value;
+  const filtered = unitId ? barbers.filter(b => b.unit_id === unitId) : [];
+  fillSelect(document.getElementById('barber_id'), filtered, unitId ? 'Selecionar barbeiro' : 'Selecione a unidade primeiro');
 }
 
 async function loadAppointments(){
@@ -75,6 +85,8 @@ window.completeAppointment = async (id) => {
   await loadRefs();
   await loadAppointments();
 
+  document.getElementById('unit_id').addEventListener('change', updateBarbersByUnit);
+
   document.getElementById('customer_id').addEventListener('change', (e) => {
     const item = customers.find(c => c.id === e.target.value);
     document.getElementById('customer_name').value = item?.name || '';
@@ -117,6 +129,7 @@ window.completeAppointment = async (id) => {
     await db.from('appointments').insert({
       barbershop_id: activeShop.id,
       customer_id: customerId,
+      unit_id: document.getElementById('unit_id').value || null,
       barber_id: barber?.id || null,
       service_id: service?.id || null,
       customer_name: document.getElementById('customer_name').value.trim(),

@@ -1,4 +1,42 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Barbeiros | NavalhaOS</title><link rel="stylesheet" href="css/style.css"></head><body><div class="app"><aside class="sidebar"><div class="brand"><img class="brand-logo" src="assets/logo.png" alt="NavalhaOS"><div class="brand-text"><h1>NavalhaOS</h1><p>Gestão para barbearias</p></div></div><div class="sidebar-footer"><button id="logoutBtn" class="btn secondary full">Sair</button></div></aside><main class="main"><div class="topbar"><div class="title"><h2 id="pageTitle"></h2><p id="pageSubtitle"></p></div><div class="userbox"><span id="shopName">Barbearia</span><strong id="userEmail"></strong></div></div><section class="grid two"><div class="card"><h3>Novo barbeiro</h3><form id="form" class="form"><div class="field"><label>Nome</label><input id="name" required></div><div class="field"><label>Telefone</label><input id="phone"></div><div class="field"><label>Comissão (%)</label><input id="commission" type="number" min="0" max="100" value="50"></div><button class="btn primary">Cadastrar</button></form></div><div class="card"><h3>Equipe</h3><div class="table-wrap"><table class="table"><thead><tr><th>Nome</th><th>Telefone</th><th>Comissão</th><th>Status</th><th>Ações</th></tr></thead><tbody id="rows"></tbody></table></div></div></section></main><nav class="bottom-nav">
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Equipe e Unidades | NavalhaOS</title><link rel="stylesheet" href="css/style.css"></head><body><div class="app"><aside class="sidebar"><div class="brand"><img class="brand-logo" src="assets/logo.png" alt="NavalhaOS"><div class="brand-text"><h1>NavalhaOS</h1><p>Gestão para barbearias</p></div></div><div class="sidebar-footer"><button id="logoutBtn" class="btn secondary full">Sair</button></div></aside><main class="main"><div class="topbar"><div class="title"><h2 id="pageTitle"></h2><p id="pageSubtitle"></p></div><div class="userbox"><span id="shopName">Barbearia</span><strong id="userEmail"></strong></div></div>
+
+<section class="grid two">
+  <div class="card">
+    <h3>Nova unidade</h3>
+    <p class="muted-copy">Cadastre filiais, pontos de atendimento ou unidades da barbearia.</p>
+    <form id="unitForm" class="form" style="margin-top:14px">
+      <div class="field"><label>Nome da unidade</label><input id="unit_name" required placeholder="Ex: Unidade Centro"></div>
+      <div class="field"><label>Endereço</label><input id="unit_address" placeholder="Rua, número, bairro"></div>
+      <div class="field"><label>Telefone</label><input id="unit_phone" placeholder="(27) 99999-9999"></div>
+      <button class="btn primary">Cadastrar unidade</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Unidades</h3>
+    <p class="muted-copy">Gerencie as unidades e vincule os barbeiros a cada uma delas.</p>
+    <div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr><th>Unidade</th><th>Endereço</th><th>Status</th><th>Ações</th></tr></thead><tbody id="unitRows"></tbody></table></div>
+  </div>
+</section>
+
+<section class="grid two" style="margin-top:14px">
+  <div class="card">
+    <h3>Novo barbeiro</h3>
+    <form id="form" class="form">
+      <div class="field"><label>Unidade</label><select id="unit_id" required></select></div>
+      <div class="field"><label>Nome</label><input id="name" required></div>
+      <div class="field"><label>Telefone</label><input id="phone"></div>
+      <div class="field"><label>Comissão (%)</label><input id="commission" type="number" min="0" max="100" value="50"></div>
+      <button class="btn primary">Cadastrar barbeiro</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Barbeiros por unidade</h3>
+    <div class="field" style="margin-bottom:12px"><label>Filtrar unidade</label><select id="unitFilter"></select></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Nome</th><th>Unidade</th><th>Telefone</th><th>Comissão</th><th>Status</th><th>Ações</th></tr></thead><tbody id="rows"></tbody></table></div>
+  </div>
+</section>
+
+</main><nav class="bottom-nav">
   <a data-nav="dashboard" href="dashboard.html"><span class="nav-ico nav-svg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6.5 9.5V20h11V9.5"/></svg></span><span>Início</span></a>
   <a data-nav="agenda" href="agenda.html"><span class="nav-ico nav-svg"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span><span>Agenda</span></a>
   <a data-nav="clientes" href="clientes.html"><span class="nav-ico nav-svg"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M14.5 19a4 4 0 0 1 6 0"/></svg></span><span>Clientes</span></a>

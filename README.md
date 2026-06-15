@@ -117,3 +117,15 @@ A página `agendar.html` foi ajustada para usar caminhos absolutos (`/css`, `/js
 
 - As listas suspensas agora mantêm o mesmo fundo escuro do restante do sistema.
 - O agendamento público foi ajustado para evitar erro ao abrir links amigáveis como `/agenda/barbearia-teste`, inclusive quando o valor não é um UUID.
+
+
+## Unidades e barbeiros por unidade
+
+Na aba **Equipe**, agora é possível:
+- cadastrar unidades;
+- cadastrar endereço e telefone da unidade;
+- ativar/inativar unidades;
+- vincular cada barbeiro a uma unidade;
+- filtrar barbeiros por unidade.
+
+No agendamento público, o cliente escolhe primeiro a **unidade**, depois o serviço, barbeiro, data e horário.

@@ -15,6 +15,19 @@ create table if not exists public.barbershops (
   constraint barbershops_owner_id_unique unique (owner_id)
 );
 
+
+create table if not exists public.units (
+  id uuid primary key default gen_random_uuid(),
+  barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  unit_id uuid references public.units(id) on delete set null,
+  name text not null,
+  address text,
+  phone text,
+  active boolean not null default true,
+  created_at timestamptz default now(),
+  unique (barbershop_id, name)
+);
+
 create table if not exists public.barbers (
   id uuid primary key default gen_random_uuid(),
   barbershop_id uuid not null references public.barbershops(id) on delete cascade,
@@ -49,6 +62,7 @@ create table if not exists public.customers (
 create table if not exists public.appointments (
   id uuid primary key default gen_random_uuid(),
   barbershop_id uuid not null references public.barbershops(id) on delete cascade,
+  unit_id uuid references public.units(id) on delete set null,
   customer_id uuid references public.customers(id) on delete set null,
   barber_id uuid references public.barbers(id) on delete set null,
   service_id uuid references public.services(id) on delete set null,
@@ -106,10 +120,11 @@ create table if not exists public.schedule_blocks (
 
 grant usage on schema public to authenticated, anon;
 grant select, insert, update, delete on all tables in schema public to authenticated;
-grant select on public.barbershops, public.barbers, public.services, public.barber_availability, public.schedule_blocks to anon;
+grant select on public.barbershops, public.units, public.barbers, public.services, public.barber_availability, public.schedule_blocks to anon;
 grant insert on public.customers, public.appointments to anon;
 
 alter table public.barbershops enable row level security;
+alter table public.units enable row level security;
 alter table public.barbers enable row level security;
 alter table public.services enable row level security;
 alter table public.customers enable row level security;
@@ -136,6 +151,24 @@ returns boolean language sql stable as $$
     where b.id = target_barbershop_id and b.owner_id = auth.uid()
   );
 $$;
+
+drop policy if exists "units_manage_own" on public.units;
+create policy "units_manage_own" on public.units
+for all to authenticated
+using (public.user_owns_barbershop(barbershop_id))
+with check (public.user_owns_barbershop(barbershop_id));
+
+drop policy if exists "public_read_active_units" on public.units;
+create policy "public_read_active_units" on public.units
+for select to anon
+using (
+  active = true and exists (
+    select 1 from public.barbershops b
+    where b.id = units.barbershop_id
+    and b.active = true
+    and b.subscription_status = 'active'
+  )
+);
 
 drop policy if exists "barbers_manage_own" on public.barbers;
 create policy "barbers_manage_own" on public.barbers
@@ -352,3 +385,25 @@ using (
 
 grant select on public.special_day_hours to anon;
 grant select, insert, update, delete on public.special_day_hours to authenticated;
+
+
+-- Unidades e vínculo de barbeiros por unidade
+alter table public.barbers
+add column if not exists unit_id uuid references public.units(id) on delete set null;
+
+alter table public.appointments
+add column if not exists unit_id uuid references public.units(id) on delete set null;
+
+insert into public.units (barbershop_id, name, active)
+select b.id, 'Unidade Principal', true
+from public.barbershops b
+where not exists (
+  select 1 from public.units u where u.barbershop_id = b.id
+);
+
+update public.barbers br
+set unit_id = u.id
+from public.units u
+where br.barbershop_id = u.barbershop_id
+and br.unit_id is null
+and u.name = 'Unidade Principal';

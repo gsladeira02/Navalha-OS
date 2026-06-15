@@ -5,10 +5,11 @@
   const today = todayISO();
   const monthStart = today.slice(0, 8) + '01';
 
-  const [cashRes, appointmentsRes, customersRes, barbersRes, servicesRes] = await Promise.all([
+  const [cashRes, appointmentsRes, customersRes, unitsRes, barbersRes, servicesRes] = await Promise.all([
     db.from('cash_entries').select('*').eq('barbershop_id', shopId),
     db.from('appointments').select('*').eq('barbershop_id', shopId),
     db.from('customers').select('id').eq('barbershop_id', shopId),
+    db.from('units').select('id').eq('barbershop_id', shopId).eq('active', true),
     db.from('barbers').select('id').eq('barbershop_id', shopId).eq('active', true),
     db.from('services').select('id').eq('barbershop_id', shopId).eq('active', true)
   ]);
@@ -27,6 +28,8 @@
   document.getElementById('todayAppointments').textContent = todayAppts.length;
   document.getElementById('doneToday').textContent = todayDone.length;
   document.getElementById('customersCount').textContent = (customersRes.data || []).length;
+  const unitsCountEl = document.getElementById('unitsCount');
+  if (unitsCountEl) unitsCountEl.textContent = (unitsRes.data || []).length;
   document.getElementById('barbersCount').textContent = (barbersRes.data || []).length;
   document.getElementById('servicesCount').textContent = (servicesRes.data || []).length;
   document.getElementById('cashCount').textContent = todayCash.length;
