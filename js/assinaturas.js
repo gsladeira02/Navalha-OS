@@ -258,7 +258,7 @@ function renderSubscriptions(){
         <td data-label="Tipo">${recurringLabel(item)}</td>
         <td data-label="Próxima cobrança">${dateBR(item.next_billing_date)}</td>
         <td data-label="Ações"><div class="actions">
-          ${item.checkout_url ? `<a class="btn secondary small" href="${escapeHtml(item.checkout_url)}" target="_blank">Link</a>` : ''}
+          ${item.checkout_url ? `<button class="btn primary small" onclick="sendSubscriptionWhatsApp('${item.id}')">Enviar por WhatsApp</button>` : ''}
           <button class="btn primary small" onclick="createPayment('${item.id}')">Gerar cobrança</button>
           <button class="btn danger small" onclick="cancelSubscription('${item.id}')">Cancelar</button>
         </div></td>
@@ -353,6 +353,53 @@ window.createPayment = async (subscriptionId) => {
     await loadAll();
   } catch (err) {
     showToast(err.message || 'Não foi possível gerar a cobrança automática.', 'error');
+  }
+};
+
+window.sendSubscriptionWhatsApp = async (subscriptionId) => {
+  const sub = subscriptionById(subscriptionId);
+  if (!sub) {
+    showToast('Assinatura não encontrada na tela.', 'error');
+    return;
+  }
+
+  const relatedPayments = payments
+    .filter(p => p.subscription_id === subscriptionId)
+    .sort((a, b) => String(b.created_at || b.due_date || '').localeCompare(String(a.created_at || a.due_date || '')));
+
+  if (relatedPayments.length) {
+    return sendPaymentWhatsApp(relatedPayments[0].id);
+  }
+
+  const customer = customerById(sub.customer_id);
+  const plan = planById(sub.plan_id);
+  const fakePayment = {
+    id: '',
+    subscription_id: sub.id,
+    customer_id: sub.customer_id,
+    plan_id: sub.plan_id,
+    customer_name: customer?.name || sub.customer_name,
+    plan_name: plan?.name || sub.plan_name,
+    amount: Number(plan?.price || 0),
+    due_date: sub.next_billing_date,
+    payment_method: sub.payment_method,
+    checkout_url: sub.checkout_url
+  };
+
+  try {
+    const message = buildPaymentShareMessage({
+      payment: fakePayment,
+      customer,
+      plan,
+      shareData: {
+        invoiceUrl: sub.checkout_url,
+        dueDate: sub.next_billing_date
+      }
+    });
+    openWhatsAppToCustomer(customer?.phone || '', message);
+    showToast('WhatsApp aberto com a mensagem pronta.', 'success');
+  } catch (err) {
+    showToast(err.message || 'Não foi possível montar a mensagem da cobrança.', 'error');
   }
 };
 

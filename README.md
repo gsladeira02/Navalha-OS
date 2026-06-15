@@ -296,3 +296,15 @@ Ela só abre o WhatsApp quando consegue preencher:
 - link, boleto ou Pix real da cobrança.
 
 Caso algum dado esteja faltando, o sistema mostra um erro pedindo correção em vez de enviar uma mensagem incompleta.
+
+
+## Botão Link substituído por WhatsApp
+
+Na linha de assinatura/cobrança, o botão **Link** foi substituído por **Enviar por WhatsApp**.
+
+Quando a assinatura já tiver uma cobrança gerada, o botão abre direto o WhatsApp do cliente com a mensagem pronta e os valores reais:
+- cliente;
+- plano;
+- valor;
+- vencimento;
+- link/boleto/Pix.
