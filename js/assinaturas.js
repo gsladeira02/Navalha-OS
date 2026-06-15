@@ -88,29 +88,37 @@ function normalizeBrazilPhone(value){
 }
 
 function buildPaymentShareMessage({ payment, customer, plan, shareData }){
-  const customerName = customer?.name || payment?.customer_name || 'cliente';
-  const planName = plan?.name || payment?.plan_name || 'plano';
-  const amount = currency.format(Number(payment?.amount || 0));
-  const due = dateBR(payment?.due_date || shareData?.dueDate);
+  const customerName = String(customer?.name || payment?.customer_name || '').trim();
+  const planName = String(plan?.name || payment?.plan_name || '').trim();
+  const amountNumber = Number(payment?.amount || 0);
+  const amount = currency.format(amountNumber);
+  const dueValue = payment?.due_date || shareData?.dueDate || '';
+  const due = dueValue ? dateBR(dueValue) : '';
+
+  const paymentLink = shareData?.invoiceUrl || shareData?.bankSlipUrl || payment?.invoice_url || payment?.bank_slip_url || payment?.checkout_url || '';
+  const pixPayload = shareData?.pixPayload || payment?.pix_payload || '';
 
   const hasBoleto = Boolean(shareData?.bankSlipUrl || payment?.bank_slip_url);
-  const hasPix = Boolean(shareData?.pixPayload || payment?.pix_payload);
-  const tipo = hasBoleto ? 'boleto' : hasPix ? 'qrcode' : 'link';
+  const hasPix = Boolean(pixPayload);
+  const tipo = hasBoleto ? 'boleto' : hasPix ? 'QR Code Pix' : 'link';
 
-  const paymentLink = shareData?.invoiceUrl || shareData?.bankSlipUrl || payment?.invoice_url || payment?.bank_slip_url || payment?.checkout_url;
-  const pixPayload = shareData?.pixPayload || payment?.pix_payload;
+  const missing = [];
+  if (!customerName) missing.push('nome do cliente');
+  if (!planName) missing.push('nome do plano');
+  if (!amountNumber) missing.push('valor');
+  if (!due) missing.push('vencimento');
+  if (!paymentLink && !pixPayload) missing.push('link, boleto ou Pix');
+
+  if (missing.length) {
+    throw new Error(`Não foi possível montar a mensagem. Falta: ${missing.join(', ')}.`);
+  }
 
   const lines = [
     `Olá ${customerName}, este é o ${tipo} para pagamento do seu ${planName} no valor de ${amount} com vencimento em ${due}.`
   ];
 
-  if (paymentLink) {
-    lines.push('', paymentLink);
-  }
-
-  if (pixPayload) {
-    lines.push('', 'Pix copia e cola:', pixPayload);
-  }
+  if (paymentLink) lines.push('', paymentLink);
+  if (pixPayload) lines.push('', 'Pix copia e cola:', pixPayload);
 
   return lines.join('\n');
 }
@@ -363,7 +371,8 @@ window.sendPaymentWhatsApp = async (paymentId) => {
     showToast('Preparando mensagem para WhatsApp...', 'info');
     const data = await callSecureFunction('get-payment-share-data', { paymentId });
     const shareData = data?.share || {};
-    const message = buildPaymentShareMessage({ payment: data?.payment || payment, customer, plan, shareData });
+    const updatedPayment = data?.payment || payment;
+    const message = buildPaymentShareMessage({ payment: updatedPayment, customer, plan, shareData });
 
     if (shareData?.pixPayload) {
       try { await navigator.clipboard.writeText(shareData.pixPayload); } catch (_) {}
@@ -373,9 +382,13 @@ window.sendPaymentWhatsApp = async (paymentId) => {
     showToast(shareData?.pixPayload ? 'WhatsApp aberto com a mensagem pronta. Pix copia e cola também foi copiado.' : 'WhatsApp aberto com a mensagem pronta.', 'success');
     await loadAll();
   } catch (err) {
-    const fallbackMessage = buildPaymentShareMessage({ payment, customer, plan, shareData: { invoiceUrl: payment.invoice_url || payment.bank_slip_url || payment.checkout_url, pixPayload: payment.pix_payload, dueDate: payment.due_date } });
-    openWhatsAppToCustomer(customer?.phone || payment?.customer_phone || '', fallbackMessage);
-    showToast(err.message || 'WhatsApp aberto com os dados disponíveis da cobrança.', 'error');
+    try {
+      const fallbackMessage = buildPaymentShareMessage({ payment, customer, plan, shareData: { invoiceUrl: payment.invoice_url || payment.bank_slip_url || payment.checkout_url, pixPayload: payment.pix_payload, dueDate: payment.due_date } });
+      openWhatsAppToCustomer(customer?.phone || payment?.customer_phone || '', fallbackMessage);
+      showToast('WhatsApp aberto com os dados disponíveis da cobrança.', 'success');
+    } catch (fallbackErr) {
+      showToast(err.message || fallbackErr.message || 'Não foi possível montar a mensagem com os dados reais da cobrança.', 'error');
+    }
   }
 };
 

@@ -282,3 +282,17 @@ O sistema completa automaticamente:
 - vencimento;
 - link de pagamento;
 - Pix copia e cola, quando existir.
+
+
+## Valores reais no WhatsApp
+
+A mensagem de WhatsApp não usa mais textos genéricos como "Cliente", "Nome do Plano" ou "R$".
+
+Ela só abre o WhatsApp quando consegue preencher:
+- nome real do cliente;
+- nome real do plano;
+- valor real da cobrança;
+- vencimento real;
+- link, boleto ou Pix real da cobrança.
+
+Caso algum dado esteja faltando, o sistema mostra um erro pedindo correção em vez de enviar uma mensagem incompleta.
