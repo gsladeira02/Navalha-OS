@@ -13,17 +13,57 @@
   <script>
     document.getElementById('loginForm').addEventListener('submit', async (e)=>{
       e.preventDefault();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const { data, error } = await db.auth.signInWithPassword({ email, password });
-      if(error){ alert('Login inválido ou assinatura não liberada.'); return; }
-      const { data: shop } = await db.from('barbershops').select('id,active,subscription_status').eq('owner_id', data.user.id).maybeSingle();
-      if(!shop || shop.active === false || shop.subscription_status !== 'active'){
-        await db.auth.signOut();
-        alert('Acesso bloqueado. A assinatura precisa estar ativa para entrar.');
-        return;
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Entrando...';
+
+      try {
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const password = document.getElementById('password').value;
+
+        const { data, error } = await db.auth.signInWithPassword({ email, password });
+
+        if(error){
+          alert('Erro no login: ' + error.message + '\n\nSe o usuário foi criado manualmente, confirme o e-mail dele no Supabase Auth.');
+          return;
+        }
+
+        if(!data || !data.user){
+          alert('Login não retornou usuário. Verifique se a conta está confirmada no Supabase Auth.');
+          return;
+        }
+
+        const { data: shop, error: shopError } = await db
+          .from('barbershops')
+          .select('id,active,subscription_status')
+          .eq('owner_id', data.user.id)
+          .maybeSingle();
+
+        if(shopError){
+          alert('Erro ao verificar assinatura: ' + shopError.message);
+          await db.auth.signOut();
+          return;
+        }
+
+        if(!shop){
+          alert('Usuário autenticado, mas ainda não existe barbearia vinculada a essa conta.');
+          await db.auth.signOut();
+          return;
+        }
+
+        if(shop.active === false || shop.subscription_status !== 'active'){
+          alert('Acesso bloqueado. A assinatura precisa estar ativa para entrar.');
+          await db.auth.signOut();
+          return;
+        }
+
+        window.location.assign('dashboard.html');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
-      location.href='dashboard.html';
     });
   </script>
 </body></html>
