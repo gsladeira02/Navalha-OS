@@ -212,8 +212,10 @@ window.cancelSubscription = async (id) => {
 };
 
 window.createPayment = async (subscriptionId) => {
-  const sub = subscriptionById(subscriptionId);
-  if (!sub) return;
+  if (!subscriptionId || subscriptionId === 'undefined' || subscriptionId === 'null') {
+    showToast('ID da assinatura não foi encontrado na tela. Atualize a página e tente novamente.', 'error');
+    return;
+  }
 
   try {
     showToast('Gerando cobrança recorrente...', 'info');
