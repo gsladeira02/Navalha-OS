@@ -455,3 +455,12 @@ O CSS foi otimizado para aparelhos mais simples:
 - menor repintura visual durante navegação.
 
 Também foi reduzida a frequência de gravação no scroll do menu inferior.
+
+
+## Troca direta de abas
+
+A navegação entre abas foi ajustada para trocar direto, sem animação de transição visual:
+- removida animação de View Transitions;
+- removidas transições de body/app/main;
+- removidas transições globais nos links e botões da navegação;
+- adicionado bloqueio por CSS e JS para evitar efeito de página deslizando/aparecendo.

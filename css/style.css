@@ -563,3 +563,62 @@ body::before,
     scroll-behavior:auto!important;
   }
 }
+
+
+/* =========================================================
+   TROCA DIRETA DE ABAS - sem animação de página
+   ========================================================= */
+@view-transition{
+  navigation:none;
+}
+
+::view-transition,
+::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root){
+  animation:none!important;
+  transition:none!important;
+  mix-blend-mode:normal!important;
+}
+
+html,
+body,
+.app,
+.main,
+.sidebar,
+.bottom-nav,
+.card,
+.page-hero,
+.share-card,
+.topbar,
+section,
+nav,
+a,
+button{
+  animation:none!important;
+  transition:none!important;
+  view-transition-name:none!important;
+}
+
+html{
+  scroll-behavior:auto!important;
+}
+
+body{
+  opacity:1!important;
+  transform:none!important;
+}
+
+.app,
+.main{
+  opacity:1!important;
+  transform:none!important;
+}
+
+
+.no-page-motion,
+.no-page-motion *{
+  animation:none!important;
+  transition:none!important;
+}
