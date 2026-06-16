@@ -496,3 +496,12 @@ O cadastro da assinatura não exige mais CNPJ da barbearia.
 Regra atual:
 - CNPJ vazio é aceito;
 - se o usuário preencher CNPJ, precisa ter 14 números.
+
+
+## Correção final do CNPJ opcional
+
+O campo CNPJ da barbearia na página inicial não possui mais `required` no HTML.
+
+Regra:
+- vazio: permitido;
+- preenchido: precisa ter 14 números.
