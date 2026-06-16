@@ -99,8 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (payload.barbershopCnpj.length !== 14) {
-      result.textContent = 'Preencha um CNPJ válido com 14 números.';
+    if (payload.barbershopCnpj && payload.barbershopCnpj.length !== 14) {
+      result.textContent = 'Se preencher CNPJ, use um CNPJ válido com 14 números.';
       result.className = 'site-form-result error';
       return;
     }

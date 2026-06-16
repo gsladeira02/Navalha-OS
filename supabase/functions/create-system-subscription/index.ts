@@ -220,7 +220,7 @@ serve(async (req) => {
     if (adminCpf.length !== 11) throw new Error("Informe um CPF válido do administrador.");
     if (!barbershopName) throw new Error("Informe o nome da barbearia.");
     if (barbershopAddress.length < 8) throw new Error("Informe o endereço da barbearia.");
-    if (barbershopCnpj.length !== 14) throw new Error("Informe um CNPJ válido da barbearia.");
+    if (barbershopCnpj && barbershopCnpj.length !== 14) throw new Error("Se preencher CNPJ, informe um CNPJ válido da barbearia.");
     if (adminPhone.length < 10 || barbershopPhone.length < 10) throw new Error("Informe os celulares com DDD.");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);

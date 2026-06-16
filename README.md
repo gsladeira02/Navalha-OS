@@ -487,3 +487,12 @@ Ao primeiro acesso, o sistema guia o cliente nesta ordem:
 Enquanto esse fluxo não estiver completo, o sistema redireciona o usuário para a próxima etapa necessária e mostra um banner de configuração inicial.
 
 Também foi criada a tabela `barber_services`, que vincula cada profissional aos serviços que ele atende. O link público de agenda filtra os profissionais de acordo com a unidade e o serviço escolhido.
+
+
+## CNPJ opcional no cadastro
+
+O cadastro da assinatura não exige mais CNPJ da barbearia.
+
+Regra atual:
+- CNPJ vazio é aceito;
+- se o usuário preencher CNPJ, precisa ter 14 números.
