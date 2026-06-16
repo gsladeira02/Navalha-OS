@@ -12,6 +12,148 @@ window.activeShop = null;
 window.currentSessionUser = null;
 window.needsPasswordChange = (user) => !user?.user_metadata || user.user_metadata.must_change_password !== false;
 
+window.initialSetupCache = window.initialSetupCache || {
+  data: null,
+  loadedAt: 0
+};
+
+window.getInitialSetupState = async function(force = false){
+  const now = Date.now();
+  if (!force && window.initialSetupCache.data && (now - window.initialSetupCache.loadedAt < 15000)) {
+    return window.initialSetupCache.data;
+  }
+
+  if (!window.activeShop?.id) return null;
+  const shopId = window.activeShop.id;
+
+  const [unitsRes, servicesRes, barbersRes, linksRes, availabilityRes] = await Promise.all([
+    db.from('units').select('id', { count:'exact' }).eq('barbershop_id', shopId).eq('active', true),
+    db.from('services').select('id', { count:'exact' }).eq('barbershop_id', shopId).eq('active', true),
+    db.from('barbers').select('id', { count:'exact' }).eq('barbershop_id', shopId).eq('active', true),
+    db.from('barber_services').select('barber_id,service_id').eq('barbershop_id', shopId),
+    db.from('barber_availability').select('id,barber_id', { count:'exact' }).eq('barbershop_id', shopId).eq('active', true)
+  ]);
+
+  const barbers = barbersRes.data || [];
+  const links = linksRes.data || [];
+  const barberIds = barbers.map(b => b.id);
+  const barbersWithoutServices = barberIds.filter(id => !links.some(link => link.barber_id === id)).length;
+
+  const state = {
+    unitsCount: unitsRes.count ?? (unitsRes.data || []).length,
+    servicesCount: servicesRes.count ?? (servicesRes.data || []).length,
+    barbersCount: barbersRes.count ?? barbers.length,
+    barberServiceLinksCount: links.length,
+    barbersWithoutServices,
+    availabilityCount: availabilityRes.count ?? (availabilityRes.data || []).length,
+    complete: false
+  };
+
+  state.complete = state.unitsCount > 0
+    && state.servicesCount > 0
+    && state.barbersCount > 0
+    && state.barbersWithoutServices === 0
+    && state.availabilityCount > 0;
+
+  window.initialSetupCache = { data: state, loadedAt: Date.now() };
+  return state;
+};
+
+window.getInitialSetupTarget = function(state){
+  if (!state) return null;
+  if (state.unitsCount <= 0) return { page:'barbeiros.html', step:'unidades', title:'1. Cadastre as unidades' };
+  if (state.servicesCount <= 0) return { page:'servicos.html', step:'servicos', title:'2. Cadastre os serviços' };
+  if (state.barbersCount <= 0 || state.barbersWithoutServices > 0) return { page:'barbeiros.html', step:'profissionais', title:'3. Cadastre os profissionais' };
+  if (state.availabilityCount <= 0) return { page:'horarios.html', step:'horarios', title:'4. Cadastre os horários' };
+  return null;
+};
+
+window.getCurrentInternalPage = function(){
+  return location.pathname.split('/').pop() || 'dashboard.html';
+};
+
+window.maybeRedirectInitialSetup = async function(){
+  const current = getCurrentInternalPage();
+  if (['login.html','index.html','change-password.html','agendar.html','privacidade.html','termos.html'].includes(current)) return;
+
+  const state = await getInitialSetupState(false);
+  if (!state || state.complete) return;
+
+  const target = getInitialSetupTarget(state);
+  if (!target) return;
+
+  if (current !== target.page) {
+    const url = `${target.page}?setup=${encodeURIComponent(target.step)}`;
+    if (window.softNavigate && document.querySelector('main.main')) {
+      await softNavigate(url, true);
+    } else {
+      location.href = url;
+    }
+    throw new Error('Configuração inicial pendente');
+  }
+};
+
+window.renderInitialSetupBanner = async function(force = false){
+  const main = document.querySelector('main.main');
+  if (!main || !window.activeShop?.id) return;
+
+  main.querySelectorAll('.initial-setup-banner').forEach(el => el.remove());
+
+  const state = await getInitialSetupState(force);
+  if (!state || state.complete) return;
+
+  const target = getInitialSetupTarget(state);
+  if (!target) return;
+
+  const steps = [
+    { key:'unidades', label:'Unidades', done: state.unitsCount > 0, page:'barbeiros.html' },
+    { key:'servicos', label:'Serviços', done: state.servicesCount > 0, page:'servicos.html' },
+    { key:'profissionais', label:'Profissionais', done: state.barbersCount > 0 && state.barbersWithoutServices === 0, page:'barbeiros.html' },
+    { key:'horarios', label:'Horários', done: state.availabilityCount > 0, page:'horarios.html' },
+  ];
+
+  const banner = document.createElement('section');
+  banner.className = 'initial-setup-banner';
+  banner.innerHTML = `
+    <div>
+      <span class="setup-kicker">Configuração inicial</span>
+      <h3>${escapeHtml(target.title)}</h3>
+      <p>Antes de usar a agenda, configure nessa ordem: unidades, serviços, profissionais e horários.</p>
+    </div>
+    <div class="setup-steps">
+      ${steps.map((s, index) => `
+        <a href="${s.page}" data-setup-link="${s.page}" class="setup-step ${s.done ? 'done' : s.key === target.step ? 'current' : ''}">
+          <b>${index + 1}</b>
+          <span>${escapeHtml(s.label)}</span>
+        </a>
+      `).join('')}
+    </div>
+    <div class="setup-actions">
+      <a href="${target.page}" data-setup-link="${target.page}" class="btn primary small">Ir para esta etapa</a>
+    </div>
+  `;
+
+  const topbar = main.querySelector('.topbar');
+  if (topbar?.nextSibling) {
+    main.insertBefore(banner, topbar.nextSibling);
+  } else {
+    main.prepend(banner);
+  }
+
+  banner.querySelectorAll('[data-setup-link]').forEach(link => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      softNavigate(link.getAttribute('href'), true);
+    });
+  });
+};
+
+window.refreshInitialSetupBanner = async function(){
+  window.initialSetupCache = { data: null, loadedAt: 0 };
+  await renderInitialSetupBanner(true);
+};
+
+
 window.appAuthCache = window.appAuthCache || {
   session: null,
   shop: null,
@@ -236,6 +378,8 @@ window.requireAuth = async function(pageTitle, subtitle){
   }
 
   applyAppShellData(pageTitle, subtitle, session, shop);
+  await renderInitialSetupBanner(false);
+  await maybeRedirectInitialSetup();
   await showSystemRenewalAlert(session.user.id, shop);
 
   const logoutBtn = document.getElementById('logoutBtn');

@@ -27,6 +27,7 @@ window.removeService = async (id) => { if (!confirm('Excluir serviço?')) return
     });
     e.target.reset();
     document.getElementById('duration').value = 30;
-    loadServices();
+    await loadServices();
+    await refreshInitialSetupBanner();
   });
 })();

@@ -642,3 +642,77 @@ body.soft-loading .bottom-nav{
 .main{
   contain:layout paint;
 }
+
+
+/* Fluxo inicial guiado */
+.initial-setup-banner{
+  display:grid;
+  gap:14px;
+  padding:16px;
+  border:1px solid rgba(33,178,109,.26);
+  background:#0d263d;
+  border-radius:20px;
+  box-shadow:0 4px 14px rgba(0,0,0,.16);
+}
+.initial-setup-banner h3{margin:5px 0 4px;font-size:20px;letter-spacing:-.03em}
+.initial-setup-banner p{margin:0;color:var(--muted-2);font-size:13px;line-height:1.45}
+.setup-kicker{
+  display:inline-flex;
+  padding:6px 9px;
+  border-radius:999px;
+  background:rgba(33,178,109,.14);
+  color:#eafff4;
+  border:1px solid rgba(33,178,109,.24);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.setup-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.setup-step{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:#dce8ff;
+  min-width:0;
+}
+.setup-step b{
+  display:grid;
+  place-items:center;
+  width:25px;
+  height:25px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  flex:0 0 auto;
+}
+.setup-step span{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.setup-step.done{border-color:rgba(33,178,109,.28);background:rgba(33,178,109,.10)}
+.setup-step.current{border-color:rgba(31,95,255,.35);background:#12345a}
+.setup-actions{display:flex;justify-content:flex-end}
+
+.check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.check-card{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:3px 8px;
+  align-items:center;
+  padding:11px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+}
+.check-card input{width:auto}
+.check-card span{font-weight:900;font-size:13px}
+.check-card small{grid-column:2;color:var(--muted);font-size:11px}
+.empty.compact{padding:10px;font-size:12px}
+
+@media (max-width:760px){
+  .setup-steps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .setup-actions{justify-content:stretch}
+  .setup-actions .btn{width:100%}
+  .check-grid{grid-template-columns:1fr}
+}

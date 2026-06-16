@@ -3,6 +3,7 @@ let shop = null;
 let services = [];
 let units = [];
 let barbers = [];
+let barberServices = [];
 let selectedSlot = '';
 
 const params = new URLSearchParams(location.search);
@@ -33,6 +34,24 @@ function updateBookingAddress(unitId){
   const address = unit?.address || shop?.address || '';
   addressEl.textContent = address ? `📍 ${address}` : '';
   addressEl.classList.toggle('hidden', !address);
+}
+
+function barberCanDoService(barberId, serviceId){
+  if (!serviceId) return true;
+  if (!barberServices.length) return true;
+  return barberServices.some(link => link.barber_id === barberId && link.service_id === serviceId);
+}
+
+function updatePublicBarberOptions(){
+  const unitId = document.getElementById('unit_id').value;
+  const serviceId = document.getElementById('service_id').value;
+  updateBookingAddress(unitId);
+  const filtered = unitId
+    ? barbers.filter(b => b.unit_id === unitId && barberCanDoService(b.id, serviceId))
+    : [];
+  document.getElementById('barber_id').innerHTML =
+    '<option value="">Escolha o profissional</option>' +
+    filtered.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
 }
 
 
@@ -124,15 +143,17 @@ async function initBooking(){
     shopAddressEl.classList.toggle('hidden', !shop.address);
   }
 
-  const [unitsRes, servicesRes, barbersRes] = await Promise.all([
+  const [unitsRes, servicesRes, barbersRes, barberServicesRes] = await Promise.all([
     db.from('units').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name'),
     db.from('services').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name'),
-    db.from('barbers').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name')
+    db.from('barbers').select('*').eq('barbershop_id', shop.id).eq('active', true).order('name'),
+    db.from('barber_services').select('*').eq('barbershop_id', shop.id)
   ]);
 
   units = unitsRes.data || [];
   services = servicesRes.data || [];
   barbers = barbersRes.data || [];
+  barberServices = barberServicesRes.data || [];
 
   document.getElementById('unit_id').innerHTML =
     '<option value="">Escolha a unidade</option>' +
@@ -148,16 +169,15 @@ async function initBooking(){
   document.getElementById('appointment_date').min = todayISO();
 
   document.getElementById('unit_id').addEventListener('change', () => {
-    const unitId = document.getElementById('unit_id').value;
-    updateBookingAddress(unitId);
-    const filtered = unitId ? barbers.filter(b => b.unit_id === unitId) : [];
-    document.getElementById('barber_id').innerHTML =
-      '<option value="">Escolha o barbeiro</option>' +
-      filtered.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+    updatePublicBarberOptions();
     selectedSlot = '';
     renderSlots();
   });
-  document.getElementById('service_id').addEventListener('change', renderSlots);
+  document.getElementById('service_id').addEventListener('change', () => {
+    updatePublicBarberOptions();
+    selectedSlot = '';
+    renderSlots();
+  });
   document.getElementById('barber_id').addEventListener('change', renderSlots);
   document.getElementById('appointment_date').addEventListener('change', renderSlots);
 

@@ -1,9 +1,45 @@
 
 let units = [];
+let services = [];
 let barbers = [];
+let barberServices = [];
 
 function unitName(unitId){
   return units.find(u => u.id === unitId)?.name || 'Sem unidade';
+}
+
+function serviceName(serviceId){
+  return services.find(s => s.id === serviceId)?.name || '';
+}
+
+function serviceNamesForBarber(barberId){
+  const names = barberServices
+    .filter(link => link.barber_id === barberId)
+    .map(link => serviceName(link.service_id))
+    .filter(Boolean);
+  return names.length ? names.join(', ') : 'Nenhum serviço vinculado';
+}
+
+function selectedServiceIds(){
+  return Array.from(document.querySelectorAll('#barberServices input[type="checkbox"]:checked')).map(input => input.value);
+}
+
+function renderServiceChecks(){
+  const wrap = document.getElementById('barberServices');
+  if (!wrap) return;
+
+  if (!services.length) {
+    wrap.innerHTML = '<div class="empty compact">Cadastre os serviços antes de cadastrar profissionais.</div>';
+    return;
+  }
+
+  wrap.innerHTML = services.map(service => `
+    <label class="check-card">
+      <input type="checkbox" value="${service.id}">
+      <span>${escapeHtml(service.name)}</span>
+      <small>${currency.format(Number(service.price || 0))}</small>
+    </label>
+  `).join('');
 }
 
 function fillUnitSelects(){
@@ -15,21 +51,23 @@ function fillUnitSelects(){
   if (filter) filter.innerHTML = `<option value="">Todas as unidades</option>${options}`;
 }
 
-async function loadUnits(){
-  const { data, error } = await db
-    .from('units')
-    .select('*')
-    .eq('barbershop_id', activeShop.id)
-    .order('created_at', { ascending:false });
+async function loadUnitsAndServices(){
+  const [unitsRes, servicesRes] = await Promise.all([
+    db.from('units').select('*').eq('barbershop_id', activeShop.id).order('created_at', { ascending:false }),
+    db.from('services').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name')
+  ]);
 
-  if (error) {
+  if (unitsRes.error) {
     showToast('Não foi possível carregar as unidades. Confira o SQL.', 'error');
     units = [];
   } else {
-    units = data || [];
+    units = unitsRes.data || [];
   }
 
+  services = servicesRes.data || [];
+
   fillUnitSelects();
+  renderServiceChecks();
 
   const rows = document.getElementById('unitRows');
   rows.innerHTML = units.length ? units.map(item => `
@@ -52,10 +90,21 @@ async function loadBarbers(){
     .order('created_at',{ascending:false});
 
   if (error) {
-    showToast('Não foi possível carregar barbeiros.', 'error');
+    showToast('Não foi possível carregar profissionais.', 'error');
     barbers = [];
   } else {
     barbers = data || [];
+  }
+
+  if (barbers.length) {
+    const { data: links } = await db
+      .from('barber_services')
+      .select('*')
+      .eq('barbershop_id', activeShop.id)
+      .in('barber_id', barbers.map(b => b.id));
+    barberServices = links || [];
+  } else {
+    barberServices = [];
   }
 
   const selectedUnit = document.getElementById('unitFilter')?.value || '';
@@ -67,43 +116,48 @@ async function loadBarbers(){
       <td data-label="Nome">${escapeHtml(item.name)}</td>
       <td data-label="Unidade">${escapeHtml(unitName(item.unit_id))}</td>
       <td data-label="Telefone">${escapeHtml(item.phone || '-')}</td>
+      <td data-label="Serviços">${escapeHtml(serviceNamesForBarber(item.id))}</td>
       <td data-label="Comissão">${Number(item.commission_percent || 0)}%</td>
       <td data-label="Status"><span class="badge ${item.active ? 'ativo':'inativo'}">${item.active ? 'ativo':'inativo'}</span></td>
       <td data-label="Ações"><div class="actions">
         <button class="btn secondary small" onclick="toggleBarber('${item.id}', ${item.active ? 'false':'true'})">${item.active ? 'Inativar':'Ativar'}</button>
         <button class="btn danger small" onclick="removeBarber('${item.id}')">Excluir</button>
       </div></td>
-    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">Nenhum barbeiro cadastrado nesta unidade.</div></td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="7"><div class="empty">Nenhum profissional cadastrado nesta unidade.</div></td></tr>`;
 }
 
 window.toggleUnit = async (id, active) => {
   await db.from('units').update({ active }).eq('id', id).eq('barbershop_id', activeShop.id);
-  await loadUnits();
+  await loadUnitsAndServices();
   await loadBarbers();
+  await refreshInitialSetupBanner();
 };
 
 window.removeUnit = async (id) => {
-  if (!confirm('Excluir unidade? Os barbeiros vinculados ficarão sem unidade.')) return;
+  if (!confirm('Excluir unidade? Os profissionais vinculados ficarão sem unidade.')) return;
   await db.from('barbers').update({ unit_id: null }).eq('unit_id', id).eq('barbershop_id', activeShop.id);
   await db.from('units').delete().eq('id', id).eq('barbershop_id', activeShop.id);
-  await loadUnits();
+  await loadUnitsAndServices();
   await loadBarbers();
+  await refreshInitialSetupBanner();
 };
 
 window.toggleBarber = async (id, active) => {
   await db.from('barbers').update({ active }).eq('id', id).eq('barbershop_id', activeShop.id);
-  loadBarbers();
+  await loadBarbers();
+  await refreshInitialSetupBanner();
 };
 
 window.removeBarber = async (id) => {
-  if (!confirm('Excluir barbeiro?')) return;
+  if (!confirm('Excluir profissional?')) return;
   await db.from('barbers').delete().eq('id', id).eq('barbershop_id', activeShop.id);
-  loadBarbers();
+  await loadBarbers();
+  await refreshInitialSetupBanner();
 };
 
 (async () => {
-  await requireAuth('Equipe', 'Cadastre unidades e vincule cada barbeiro à unidade correta');
-  await loadUnits();
+  await requireAuth('Profissionais', 'Primeiro cadastre unidades. Depois vincule cada profissional à unidade e aos serviços que ele atende.');
+  await loadUnitsAndServices();
   await loadBarbers();
 
   document.getElementById('unitFilter').addEventListener('change', loadBarbers);
@@ -118,6 +172,11 @@ window.removeBarber = async (id) => {
       active: true
     };
 
+    if (!payload.address || !payload.phone) {
+      showToast('Informe endereço e telefone da unidade.', 'error');
+      return;
+    }
+
     const { error } = await db.from('units').insert(payload);
     if (error) {
       showToast('Não foi possível cadastrar a unidade.', 'error');
@@ -125,8 +184,9 @@ window.removeBarber = async (id) => {
     }
 
     e.target.reset();
-    showToast('Unidade cadastrada.', 'success');
-    await loadUnits();
+    showToast('Unidade cadastrada. Cadastre outra unidade ou avance para Serviços.', 'success');
+    await loadUnitsAndServices();
+    await refreshInitialSetupBanner();
   });
 
   document.getElementById('form').addEventListener('submit', async (e) => {
@@ -134,27 +194,41 @@ window.removeBarber = async (id) => {
 
     const unitId = document.getElementById('unit_id').value;
     if (!unitId) {
-      showToast('Selecione a unidade do barbeiro.', 'error');
+      showToast('Selecione a unidade do profissional.', 'error');
       return;
     }
 
-    const { error } = await db.from('barbers').insert({
+    const serviceIds = selectedServiceIds();
+    if (!serviceIds.length) {
+      showToast('Selecione pelo menos um serviço para este profissional.', 'error');
+      return;
+    }
+
+    const { data: barber, error } = await db.from('barbers').insert({
       barbershop_id: activeShop.id,
       unit_id: unitId,
       name: document.getElementById('name').value.trim(),
       phone: document.getElementById('phone').value.trim(),
       commission_percent: Number(document.getElementById('commission').value || 0),
       active: true
-    });
+    }).select().single();
 
-    if (error) {
-      showToast('Não foi possível cadastrar o barbeiro.', 'error');
+    if (error || !barber) {
+      showToast('Não foi possível cadastrar o profissional.', 'error');
       return;
     }
 
+    await db.from('barber_services').insert(serviceIds.map(serviceId => ({
+      barbershop_id: activeShop.id,
+      barber_id: barber.id,
+      service_id: serviceId
+    })));
+
     e.target.reset();
     document.getElementById('commission').value = 50;
-    showToast('Barbeiro cadastrado.', 'success');
-    loadBarbers();
+    renderServiceChecks();
+    showToast('Profissional cadastrado com unidade e serviços.', 'success');
+    await loadBarbers();
+    await refreshInitialSetupBanner();
   });
 })();

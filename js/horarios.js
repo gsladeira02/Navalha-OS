@@ -238,7 +238,8 @@ window.removeBlock = async (id) => {
     await db.from('barber_availability').insert(payload);
     e.target.reset();
     showToast('Horário semanal salvo.', 'success');
-    loadAvailability();
+    await loadAvailability();
+    await refreshInitialSetupBanner();
   });
 
   document.getElementById('blockForm').addEventListener('submit', async (e) => {

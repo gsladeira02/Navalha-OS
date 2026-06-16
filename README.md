@@ -474,3 +474,16 @@ A navegação entre abas agora é feita por troca interna de conteúdo:
 - troca apenas o conteúdo principal da aba;
 - evita a sensação de recarregamento ao navegar no celular;
 - mantém fallback para navegação normal caso algo falhe.
+
+
+## Fluxo inicial obrigatório
+
+Ao primeiro acesso, o sistema guia o cliente nesta ordem:
+1. Cadastrar unidades com endereço e telefone;
+2. Cadastrar serviços;
+3. Cadastrar profissionais, selecionando unidade e serviços atendidos;
+4. Cadastrar horários.
+
+Enquanto esse fluxo não estiver completo, o sistema redireciona o usuário para a próxima etapa necessária e mostra um banner de configuração inicial.
+
+Também foi criada a tabela `barber_services`, que vincula cada profissional aos serviços que ele atende. O link público de agenda filtra os profissionais de acordo com a unidade e o serviço escolhido.

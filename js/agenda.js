@@ -4,32 +4,44 @@ let customers = [];
 let units = [];
 let barbers = [];
 let services = [];
+let barberServices = [];
 
 function fillSelect(el, items, firstLabel){
   el.innerHTML = [`<option value="">${firstLabel}</option>`].concat(items.map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`)).join('');
 }
 
 async function loadRefs(){
-  const [c,u,b,s] = await Promise.all([
+  const [c,u,b,s,bs] = await Promise.all([
     db.from('customers').select('*').eq('barbershop_id', activeShop.id).order('name'),
     db.from('units').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name'),
     db.from('barbers').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name'),
-    db.from('services').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name')
+    db.from('services').select('*').eq('barbershop_id', activeShop.id).eq('active', true).order('name'),
+    db.from('barber_services').select('*').eq('barbershop_id', activeShop.id)
   ]);
   customers = c.data || [];
   units = u.data || [];
   barbers = b.data || [];
   services = s.data || [];
+  barberServices = bs.data || [];
   fillSelect(document.getElementById('customer_id'), customers, 'Selecionar cliente');
   fillSelect(document.getElementById('unit_id'), units, 'Selecionar unidade');
   fillSelect(document.getElementById('barber_id'), [], 'Selecione a unidade primeiro');
   fillSelect(document.getElementById('service_id'), services, 'Selecionar serviço');
 }
 
+function barberCanDoService(barberId, serviceId){
+  if (!serviceId) return true;
+  if (!barberServices.length) return true;
+  return barberServices.some(link => link.barber_id === barberId && link.service_id === serviceId);
+}
+
 function updateBarbersByUnit(){
   const unitId = document.getElementById('unit_id').value;
-  const filtered = unitId ? barbers.filter(b => b.unit_id === unitId) : [];
-  fillSelect(document.getElementById('barber_id'), filtered, unitId ? 'Selecionar barbeiro' : 'Selecione a unidade primeiro');
+  const serviceId = document.getElementById('service_id').value;
+  const filtered = unitId
+    ? barbers.filter(b => b.unit_id === unitId && barberCanDoService(b.id, serviceId))
+    : [];
+  fillSelect(document.getElementById('barber_id'), filtered, unitId ? 'Selecionar profissional' : 'Selecione a unidade primeiro');
 }
 
 async function loadAppointments(){
@@ -94,6 +106,7 @@ window.completeAppointment = async (id) => {
   });
 
   document.getElementById('service_id').addEventListener('change', (e) => {
+    updateBarbersByUnit();
     const item = services.find(s => s.id === e.target.value);
     if (!item) return;
     document.getElementById('price').value = Number(item.price || 0);
