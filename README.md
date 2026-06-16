@@ -464,3 +464,13 @@ A navegação entre abas foi ajustada para trocar direto, sem animação de tran
 - removidas transições de body/app/main;
 - removidas transições globais nos links e botões da navegação;
 - adicionado bloqueio por CSS e JS para evitar efeito de página deslizando/aparecendo.
+
+
+## Navegação fluida sem recarregar topo
+
+A navegação entre abas agora é feita por troca interna de conteúdo:
+- não recarrega a página inteira;
+- mantém sidebar, topbar, nome da barbearia e menu inferior;
+- troca apenas o conteúdo principal da aba;
+- evita a sensação de recarregamento ao navegar no celular;
+- mantém fallback para navegação normal caso algo falhe.

@@ -622,3 +622,23 @@ body{
   animation:none!important;
   transition:none!important;
 }
+
+
+/* =========================================================
+   NAVEGAÇÃO FLUIDA SEM RECARREGAR SHELL
+   ========================================================= */
+body.soft-loading,
+body.soft-loading *{
+  cursor:progress!important;
+}
+
+body.soft-loading .topbar,
+body.soft-loading .sidebar,
+body.soft-loading .bottom-nav{
+  opacity:1!important;
+  transform:none!important;
+}
+
+.main{
+  contain:layout paint;
+}
