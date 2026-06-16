@@ -431,3 +431,135 @@ select:focus{
 
 /* Mantém a aba selecionada visível no menu inferior */
 .bottom-nav a.active{scroll-snap-align:center}
+
+
+/* =========================================================
+   MODO LEVE - otimizado para celulares fracos
+   ========================================================= */
+:root{
+  --shadow:0 4px 14px rgba(0,0,0,.18);
+  --radius-xl:22px;
+  --radius-lg:18px;
+  --radius-md:14px;
+}
+
+/* Remove efeitos caros de renderização */
+*{
+  transition:none!important;
+  animation:none!important;
+  scroll-behavior:auto!important;
+}
+
+html,body{
+  background:#07111f!important;
+}
+
+body::before,
+.login-hero::before,
+.login-hero::after,
+.page-hero::before{
+  display:none!important;
+}
+
+/* Troca fundos com múltiplos gradientes por fundos simples */
+.login-page,
+.booking-page,
+.site-page{
+  background:#07111f!important;
+}
+
+.login-hero,
+.login-panel,
+.login-card,
+.booking-card,
+.card,
+.page-hero,
+.share-card,
+.site-hero-card,
+.site-subscribe-form,
+.site-subscribe-info,
+.site-benefit-card{
+  background:#0e2138!important;
+  box-shadow:0 4px 14px rgba(0,0,0,.18)!important;
+}
+
+/* Remove blur pesado */
+.sidebar,
+.bottom-nav,
+.site-header{
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  background:#081523!important;
+}
+
+/* Menu inferior mais leve */
+.bottom-nav{
+  box-shadow:0 4px 18px rgba(0,0,0,.28)!important;
+  border-radius:20px!important;
+}
+
+.bottom-nav a.active,
+.bottom-nav a:hover{
+  background:#12345a!important;
+  box-shadow:none!important;
+}
+
+/* Evita transformações que causam repintura em aparelhos fracos */
+.plan-choice:hover,
+.btn:hover,
+.card:hover,
+.site-benefit-card:hover{
+  transform:none!important;
+}
+
+.hero-logo,
+.login-logo,
+.booking-logo,
+.brand-logo{
+  box-shadow:none!important;
+}
+
+.userbox,
+.hero-stat,
+.hero-list li,
+.site-plans-preview div,
+.plan-choice,
+.auth-note,
+.site-gateway-box,
+.system-renewal-alert,
+.booking-address{
+  box-shadow:none!important;
+}
+
+/* Tabelas e cards mais rápidos no mobile */
+.table-wrap{
+  -webkit-overflow-scrolling:auto!important;
+}
+
+@media (max-width:760px){
+  .main{padding:14px 12px 12px!important}
+  .card,.page-hero,.share-card{border-radius:18px!important}
+  .topbar{gap:10px!important}
+  .title h2{font-size:27px!important}
+  .bottom-nav{
+    left:8px!important;
+    right:8px!important;
+    bottom:calc(8px + env(safe-area-inset-bottom))!important;
+    padding:8px!important;
+    gap:7px!important;
+  }
+  .bottom-nav a{
+    min-height:54px!important;
+    flex-basis:64px!important;
+    min-width:64px!important;
+  }
+}
+
+/* Respeita usuários com redução de movimento ativa no aparelho */
+@media (prefers-reduced-motion: reduce){
+  *{
+    animation:none!important;
+    transition:none!important;
+    scroll-behavior:auto!important;
+  }
+}

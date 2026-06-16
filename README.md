@@ -442,3 +442,16 @@ Correção aplicada:
 - ao abrir uma tela, o menu inferior rola automaticamente até a aba selecionada;
 - ao navegar para abas mais à direita, o menu não volta visualmente para a primeira opção;
 - a aba atual fica visível e centralizada sempre que possível.
+
+
+## Modo leve para celulares fracos
+
+O CSS foi otimizado para aparelhos mais simples:
+- removidos blurs pesados;
+- reduzidas sombras grandes;
+- removidas transições/animações;
+- removido fundo em grade e gradientes radiais pesados;
+- menu inferior mais leve;
+- menor repintura visual durante navegação.
+
+Também foi reduzida a frequência de gravação no scroll do menu inferior.

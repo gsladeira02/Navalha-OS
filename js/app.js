@@ -29,7 +29,7 @@ window.keepSelectedNavVisible = function(){
     sessionStorage.setItem('navalhaos_bottom_nav_scroll_left', String(targetLeft));
   };
 
-  requestAnimationFrame(() => requestAnimationFrame(centerActive));
+  requestAnimationFrame(centerActive);
 
   nav.querySelectorAll('[data-nav]').forEach(link => {
     link.addEventListener('click', () => {
@@ -38,8 +38,12 @@ window.keepSelectedNavVisible = function(){
     });
   });
 
+  let navScrollSaveTimer = null;
   nav.addEventListener('scroll', () => {
-    sessionStorage.setItem('navalhaos_bottom_nav_scroll_left', String(nav.scrollLeft || 0));
+    clearTimeout(navScrollSaveTimer);
+    navScrollSaveTimer = setTimeout(() => {
+      sessionStorage.setItem('navalhaos_bottom_nav_scroll_left', String(nav.scrollLeft || 0));
+    }, 160);
   }, { passive: true });
 };
 
