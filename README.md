@@ -524,3 +524,25 @@ Arquivos importantes:
 - `js/configuracoes.js`
 - `supabase/functions/cancel-system-subscription/index.ts`
 - `SQL_TESTE_GRATIS_CANCELAMENTO.sql`
+
+
+## PWA / instalação no celular
+
+O NavalhaOS agora inclui suporte para instalação como app:
+
+Arquivos adicionados:
+- `manifest.webmanifest`
+- `sw.js`
+- `js/pwa.js`
+- `assets/apple-touch-icon.png`
+- `assets/icons/*`
+
+Funciona no Chrome/Android com botão de instalação quando disponível.
+
+No Safari/iPhone, o sistema exibe a orientação:
+1. tocar em Compartilhar;
+2. escolher "Adicionar à Tela de Início".
+
+Importante:
+- O PWA precisa estar publicado em HTTPS para instalar corretamente.
+- Na Vercel, isso já funciona usando o domínio `https://...vercel.app`.
