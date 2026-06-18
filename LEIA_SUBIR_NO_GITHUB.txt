@@ -1,0 +1,14 @@
+SUBIR NO GITHUB - VERSÃO MAIS LEVE
+
+Esta pasta tem somente os arquivos que a Vercel precisa para publicar o site.
+
+Suba no GitHub em partes:
+1. Arquivos da raiz: index.html, login.html, dashboard.html, etc.
+2. Pasta css
+3. Pasta assets
+4. Pasta js
+
+NÃO suba o ZIP fechado.
+NÃO precisa subir a pasta supabase nem sql na Vercel.
+
+As funções e SQL do Supabase são configurados separadamente usando o ZIP completo anterior.
