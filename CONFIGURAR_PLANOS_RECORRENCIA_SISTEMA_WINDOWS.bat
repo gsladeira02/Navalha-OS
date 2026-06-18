@@ -46,6 +46,7 @@ echo Enviando funcoes...
 supabase functions deploy create-system-subscription
 supabase functions deploy payment-webhook
 supabase functions deploy process-system-subscriptions
+supabase functions deploy cancel-system-subscription
 
 echo.
 echo Pronto.

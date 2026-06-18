@@ -716,3 +716,14 @@ body.soft-loading .bottom-nav{
   .setup-actions .btn{width:100%}
   .check-grid{grid-template-columns:1fr}
 }
+
+
+/* Assinatura / teste grátis */
+.subscription-box{display:grid;gap:12px;margin-top:14px}
+.subscription-status-card{padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:#10243b;display:grid;gap:4px}
+.subscription-status-card span{color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.subscription-status-card strong{font-size:24px;letter-spacing:-.03em}
+.subscription-status-card small{color:#dce8ff}
+.subscription-status-card.trial{border-color:rgba(33,178,109,.28);background:rgba(33,178,109,.10)}
+.subscription-status-card.renewal_pending,.subscription-status-card.overdue{border-color:rgba(243,179,76,.30);background:rgba(243,179,76,.10)}
+.subscription-status-card.canceled,.subscription-status-card.trial_canceled,.subscription-status-card.expired{border-color:rgba(217,47,61,.30);background:rgba(217,47,61,.10)}

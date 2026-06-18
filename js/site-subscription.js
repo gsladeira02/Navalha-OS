@@ -112,27 +112,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     btn.disabled = true;
-    btn.textContent = 'Gerando cobrança...';
+    btn.textContent = 'Criando teste grátis...';
     result.textContent = '';
 
     try {
       const data = await callPublicFunction('create-system-subscription', payload);
-      const paymentUrl = data?.checkoutUrl || data?.invoiceUrl;
 
       result.className = 'site-form-result success';
-      result.innerHTML = paymentUrl
-        ? `${data?.replaced ? 'Novo link gerado. O link anterior foi substituído.' : 'Assinatura criada.'} <a href="${paymentUrl}" target="_blank" rel="noopener">Clique aqui para pagar</a>. Após o pagamento, seu acesso será liberado automaticamente.`
-        : 'Assinatura criada. Aguarde a confirmação do pagamento para liberação do acesso.';
+      result.innerHTML = 'Teste grátis criado com sucesso. Você já pode entrar no sistema com o e-mail e a senha cadastrados. <a href="login.html">Clique aqui para entrar</a>.';
 
-      if (paymentUrl) {
-        setTimeout(() => window.open(paymentUrl, '_blank'), 350);
-      }
+      setTimeout(() => { window.location.href = 'login.html?trial=ok'; }, 900);
     } catch (err) {
       result.className = 'site-form-result error';
       result.textContent = err.message || 'Não foi possível criar a assinatura.';
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Gerar cobrança e assinar';
+      btn.textContent = 'Começar 3 dias grátis';
     }
   });
 });

@@ -74,7 +74,7 @@ window.getCurrentInternalPage = function(){
 
 window.maybeRedirectInitialSetup = async function(){
   const current = getCurrentInternalPage();
-  if (['login.html','index.html','change-password.html','agendar.html','privacidade.html','termos.html'].includes(current)) return;
+  if (['login.html','index.html','change-password.html','agendar.html','privacidade.html','termos.html','configuracoes.html'].includes(current)) return;
 
   const state = await getInitialSetupState(false);
   if (!state || state.complete) return;
@@ -370,7 +370,7 @@ window.requireAuth = async function(pageTitle, subtitle){
     throw new Error('Troca de senha pendente');
   }
 
-  if (!shop || !shop.active || !['active','renewal_pending'].includes(shop.subscription_status)) {
+  if (!shop || !shop.active || !['trial','active','renewal_pending'].includes(shop.subscription_status)) {
     await db.auth.signOut();
     window.appAuthCache = { session: null, shop: null, loadedAt: 0 };
     location.href = 'login.html';

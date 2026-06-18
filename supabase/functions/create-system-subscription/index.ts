@@ -4,10 +4,6 @@ import { corsHeaders, jsonResponse } from "../_shared/helpers.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const INFINITEPAY_CHECKOUT_URL = Deno.env.get("INFINITEPAY_CHECKOUT_URL") || "https://api.checkout.infinitepay.io/links";
-const INFINITEPAY_HANDLE = (Deno.env.get("INFINITEPAY_HANDLE") || Deno.env.get("NAVALHAOS_INFINITEPAY_HANDLE") || "").replace(/^\$/, "");
-const WEBHOOK_SECRET = Deno.env.get("PAYMENT_WEBHOOK_SECRET") || "";
-const PUBLIC_SITE_URL = (Deno.env.get("NAVALHAOS_PUBLIC_URL") || "").replace(/\/$/, "");
 
 const PLANS: Record<string, any> = {
   monthly: {
@@ -18,7 +14,6 @@ const PLANS: Record<string, any> = {
     periodMonths: 1,
     intervalDays: 30,
     installments: 1,
-    description: "Plano Mensal - NavalhaOS",
   },
   quarterly: {
     code: "quarterly",
@@ -28,7 +23,6 @@ const PLANS: Record<string, any> = {
     periodMonths: 3,
     intervalDays: null,
     installments: 3,
-    description: "Plano Trimestral - 3x de R$ 44,90 - NavalhaOS",
   },
   semiannual: {
     code: "semiannual",
@@ -38,7 +32,6 @@ const PLANS: Record<string, any> = {
     periodMonths: 6,
     intervalDays: null,
     installments: 6,
-    description: "Plano Semestral - 6x de R$ 39,90 - NavalhaOS",
   },
   annual: {
     code: "annual",
@@ -48,7 +41,6 @@ const PLANS: Record<string, any> = {
     periodMonths: 12,
     intervalDays: null,
     installments: 12,
-    description: "Plano Anual - 12x de R$ 14,90 - NavalhaOS",
   },
 };
 
@@ -80,12 +72,6 @@ function addDays(date: Date, days: number) {
   return d;
 }
 
-function addMonths(date: Date, months: number) {
-  const d = new Date(date);
-  d.setUTCMonth(d.getUTCMonth() + months);
-  return d;
-}
-
 async function makeUniqueSlug(supabase: any, baseName: string) {
   const base = slugify(baseName) || `barbearia-${Date.now()}`;
   let candidate = base;
@@ -102,74 +88,6 @@ async function makeUniqueSlug(supabase: any, baseName: string) {
   }
 
   return `${base}-${Date.now()}`;
-}
-
-function getRequestOrigin(req: Request) {
-  const origin = req.headers.get("origin");
-  if (origin) return origin.replace(/\/$/, "");
-  const referer = req.headers.get("referer");
-  if (referer) {
-    try { return new URL(referer).origin; } catch (_) {}
-  }
-  return PUBLIC_SITE_URL;
-}
-
-function findCheckoutUrl(payload: any) {
-  return payload?.url || payload?.link || payload?.checkout_url || payload?.checkoutUrl || payload?.payment_url || payload?.paymentUrl || payload?.data?.url || payload?.data?.link || null;
-}
-
-async function createCheckout(req: Request, plan: any, orderNsu: string, customer: any) {
-  const origin = getRequestOrigin(req);
-  const redirectUrl = origin ? `${origin}/login.html?pagamento=ok&order_nsu=${encodeURIComponent(orderNsu)}` : undefined;
-  const webhookUrl = `${SUPABASE_URL}/functions/v1/payment-webhook${WEBHOOK_SECRET ? `?secret=${encodeURIComponent(WEBHOOK_SECRET)}` : ""}`;
-
-  const checkoutPayload: Record<string, unknown> = {
-    handle: INFINITEPAY_HANDLE,
-    items: [
-      {
-        quantity: 1,
-        price: plan.totalCents,
-        description: `${plan.description} (${plan.displayPrice})`,
-      },
-    ],
-    order_nsu: orderNsu,
-    webhook_url: webhookUrl,
-    customer: {
-      name: customer.adminName,
-      email: customer.adminEmail,
-      phone_number: `+55${customer.adminPhone}`,
-    },
-  };
-
-  if (redirectUrl) checkoutPayload.redirect_url = redirectUrl;
-
-  const linkRes = await fetch(INFINITEPAY_CHECKOUT_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(checkoutPayload),
-  });
-
-  const linkJson = await linkRes.json();
-  if (!linkRes.ok) {
-    throw new Error(linkJson?.message || linkJson?.error || "Erro ao criar link de pagamento.");
-  }
-
-  const checkoutUrl = findCheckoutUrl(linkJson);
-  if (!checkoutUrl) {
-    throw new Error(`O checkout respondeu sem link de pagamento. Resposta: ${JSON.stringify(linkJson)}`);
-  }
-
-  return {
-    checkoutUrl,
-    response: linkJson,
-    invoiceSlug: linkJson?.slug || linkJson?.invoice_slug || linkJson?.data?.slug || null,
-  };
-}
-
-function getReplacedOrderList(existing: any) {
-  const list = Array.isArray(existing?.replaced_order_nsus) ? existing.replaced_order_nsus : [];
-  const current = existing?.order_nsu ? String(existing.order_nsu) : "";
-  return current && !list.includes(current) ? [...list, current] : list;
 }
 
 async function updateUserPasswordAndMetadata(supabase: any, userId: string, body: any) {
@@ -195,13 +113,8 @@ serve(async (req) => {
 
   let userIdToDelete: string | null = null;
   let barbershopIdToDelete: string | null = null;
-  let systemSubscriptionIdToDelete: string | null = null;
 
   try {
-    if (!INFINITEPAY_HANDLE) {
-      throw new Error("Configure o gateway de pagamento nos Secrets do Supabase.");
-    }
-
     const body = await req.json();
     const plan = PLANS[String(body?.planCode || "annual")] || PLANS.annual;
     const adminName = String(body?.adminName || "").trim();
@@ -233,26 +146,22 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    if (existing && ["trial", "active", "renewal_pending", "overdue", "cancel_scheduled"].includes(String(existing.status || "").toLowerCase())) {
+      throw new Error("Este e-mail já possui uma assinatura. Entre no sistema para gerenciar o plano.");
+    }
+
     const now = new Date();
     const nowIso = now.toISOString();
-    const expectedEnd = addMonths(now, plan.periodMonths);
-    const graceUntil = addDays(expectedEnd, 3);
-    const orderNsu = crypto.randomUUID();
+    const trialEnd = addDays(now, 3);
 
     let userId: string;
     let barbershopId: string;
-    let replaced = false;
-    let replacedOrderNsus: string[] = [];
+    let reused = false;
 
-    if (existing && ["active", "renewal_pending", "overdue"].includes(String(existing.status || "").toLowerCase())) {
-      throw new Error("Este e-mail já possui uma assinatura ativa. Para trocar de plano, acesse o sistema e solicite a mudança para a próxima renovação.");
-    }
-
-    if (existing && ["pending", "expired", "canceled", "cancelled"].includes(String(existing.status || "").toLowerCase()) && existing.user_id && existing.barbershop_id) {
-      replaced = true;
+    if (existing && ["expired", "canceled", "cancelled", "trial_canceled", "pending"].includes(String(existing.status || "").toLowerCase()) && existing.user_id && existing.barbershop_id) {
+      reused = true;
       userId = existing.user_id;
       barbershopId = existing.barbershop_id;
-      replacedOrderNsus = getReplacedOrderList(existing);
 
       await updateUserPasswordAndMetadata(supabase, userId, {
         adminName, adminCpf, adminPhone, adminPassword,
@@ -268,8 +177,8 @@ serve(async (req) => {
           admin_name: adminName,
           admin_cpf: adminCpf,
           admin_phone: adminPhone,
-          active: false,
-          subscription_status: "pending",
+          active: true,
+          subscription_status: "trial",
           updated_at: nowIso,
         })
         .eq("id", barbershopId);
@@ -308,8 +217,8 @@ serve(async (req) => {
           admin_cpf: adminCpf,
           admin_phone: adminPhone,
           plan: "complete",
-          subscription_status: "pending",
-          active: false,
+          subscription_status: "trial",
+          active: true,
           slug,
           setup_completed: true,
           setup_completed_at: nowIso,
@@ -324,10 +233,6 @@ serve(async (req) => {
       barbershopId = barbershop.id;
       barbershopIdToDelete = barbershopId;
     }
-
-    const checkout = await createCheckout(req, plan, orderNsu, {
-      adminName, adminEmail, adminPhone,
-    });
 
     const subscriptionPayload = {
       user_id: userId,
@@ -352,39 +257,40 @@ serve(async (req) => {
       grace_days: 3,
       cycle: plan.code === "monthly" ? "30_DAYS" : `${plan.periodMonths}_MONTHS`,
       payment_method: "CHECKOUT",
-      status: "pending",
+      status: "trial",
       external_provider: "infinitepay",
-      order_nsu: orderNsu,
-      replaced_order_nsus: replacedOrderNsus,
-      link_replaced_at: replaced ? nowIso : null,
-      external_invoice_slug: checkout.invoiceSlug,
-      checkout_url: checkout.checkoutUrl,
-      invoice_url: checkout.checkoutUrl,
-      infinitepay_payload: checkout.response,
+      order_nsu: null,
+      external_invoice_slug: null,
+      checkout_url: null,
+      invoice_url: null,
+      infinitepay_payload: null,
+      trial_started_at: nowIso,
+      trial_ends_at: isoDate(trialEnd),
       expected_period_start: isoDate(now),
-      expected_period_end: isoDate(expectedEnd),
-      expected_grace_until: isoDate(graceUntil),
-      current_period_start: null,
-      current_period_end: null,
-      grace_until: null,
-      next_charge_at: null,
+      expected_period_end: isoDate(trialEnd),
+      expected_grace_until: isoDate(trialEnd),
+      current_period_start: isoDate(now),
+      current_period_end: isoDate(trialEnd),
+      grace_until: isoDate(trialEnd),
+      next_due_date: isoDate(trialEnd),
+      next_charge_at: isoDate(trialEnd),
       renewal_created_at: null,
       paid_at: null,
-      next_due_date: isoDate(now),
+      canceled_at: null,
+      cancel_requested_at: null,
+      cancel_at_period_end: false,
       updated_at: nowIso,
     };
 
     let saved: any = null;
-
-    if (replaced && existing?.id) {
+    if (reused && existing?.id) {
       const { data, error } = await supabase
         .from("system_subscriptions")
         .update(subscriptionPayload)
         .eq("id", existing.id)
         .select()
         .single();
-
-      if (error) throw new Error(`Novo link criado, mas houve erro ao salvar a troca: ${error.message}`);
+      if (error) throw new Error(`Erro ao salvar o teste grátis: ${error.message}`);
       saved = data;
     } else {
       const { data, error } = await supabase
@@ -392,10 +298,8 @@ serve(async (req) => {
         .insert(subscriptionPayload)
         .select()
         .single();
-
-      if (error) throw new Error(`Cobrança criada, mas houve erro ao salvar a assinatura: ${error.message}`);
+      if (error) throw new Error(`Erro ao salvar o teste grátis: ${error.message}`);
       saved = data;
-      systemSubscriptionIdToDelete = null;
     }
 
     userIdToDelete = null;
@@ -403,19 +307,14 @@ serve(async (req) => {
 
     return jsonResponse({
       ok: true,
-      replaced,
+      trial: true,
       subscription: saved,
-      checkoutUrl: checkout.checkoutUrl,
-      invoiceUrl: checkout.checkoutUrl,
-      plan,
-      message: replaced
-        ? "Novo link gerado. O link anterior foi substituído e não liberará acesso automaticamente."
-        : "Assinatura criada. Após a confirmação do pagamento, o acesso será liberado.",
+      trialEndsAt: isoDate(trialEnd),
+      message: "Teste grátis criado. Acesso liberado por 3 dias.",
     });
   } catch (err) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      if (systemSubscriptionIdToDelete) await supabase.from("system_subscriptions").delete().eq("id", systemSubscriptionIdToDelete);
       if (barbershopIdToDelete) await supabase.from("barbershops").delete().eq("id", barbershopIdToDelete);
       if (userIdToDelete) await supabase.auth.admin.deleteUser(userIdToDelete);
     } catch (_) {}

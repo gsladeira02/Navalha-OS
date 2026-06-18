@@ -505,3 +505,22 @@ O campo CNPJ da barbearia na página inicial não possui mais `required` no HTML
 Regra:
 - vazio: permitido;
 - preenchido: precisa ter 14 números.
+
+
+## Teste grátis com InfinitePay
+
+O cadastro da página inicial agora cria uma assinatura em `trial` com 3 dias grátis, sem gerar cobrança imediatamente.
+
+Fluxo:
+1. Cliente escolhe o plano e cria a conta;
+2. A barbearia fica ativa por 3 dias grátis;
+3. Ao fim do teste, a função `process-system-subscriptions` gera o link de pagamento da InfinitePay;
+4. Se pagar, o webhook ativa o período contratado;
+5. Se não pagar até o fim da tolerância, a conta é bloqueada sem apagar dados;
+6. Em `Configurações`, o cliente pode cancelar o teste ou o plano.
+
+Arquivos importantes:
+- `configuracoes.html`
+- `js/configuracoes.js`
+- `supabase/functions/cancel-system-subscription/index.ts`
+- `SQL_TESTE_GRATIS_CANCELAMENTO.sql`
